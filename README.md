@@ -4,12 +4,21 @@
 
 ## 주요 기능
 
+
 - **이메일 인증:** Firebase의 이메일/비밀번호 인증을 사용한 로그인 및 회원가입.
 - **페이지 구성:** 로그인, 회원가입, 메인, 프로필 페이지 구현.
 - **반응형 디자인:** 다양한 디바이스에서 최적화된 UI 제공.
 - **글로벌 상태 관리:** React Context를 활용한 인증 상태 관리.
 - **모듈화된 컴포넌트:** 재사용 가능한 `InputField`, `Button`, `AuthForm` 컴포넌트.
 - **안정성:** 널 체크와 try-catch를 통한 예외 처리 구현.
+
+
+## 버전 히스토리
+- **v0.0.1**
+   - 기초틀 공사중 오류많음 
+
+- **v0.0.0**
+  - 초기 로그인환경 구축 
 
 ## Prerequisites
 
@@ -21,5 +30,5 @@
 
 1. **저장소 클론**
    ```bash
-   git clone https://github.com/your-username/next-firebase-auth.git
-   cd next-firebase-auth
+   git clone https://github.com/your-username/next-snp-management.git
+   cd next-snp-management
