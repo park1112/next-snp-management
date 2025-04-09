@@ -14,6 +14,7 @@ import {
   useTheme,
   alpha
 } from '@mui/material';
+
 import {
   People as PeopleIcon,
   Terrain as TerrainIcon,
@@ -238,7 +239,7 @@ const Dashboard = () => {
 
       {/* Stats cards */}
       <MuiGrid container spacing={3} sx={{ mb: 4 }}>
-        <MuiGrid item xs={12} sm={6} md={4}>
+        <MuiGrid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard
             title="농가"
             count={stats.farmerCount}
@@ -247,7 +248,7 @@ const Dashboard = () => {
             linkTo="/farmers"
           />
         </MuiGrid>
-        <MuiGrid item xs={12} sm={6} md={4}>
+        <MuiGrid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard
             title="농지"
             count={stats.fieldCount}
@@ -256,7 +257,7 @@ const Dashboard = () => {
             linkTo="/fields"
           />
         </MuiGrid>
-        <MuiGrid item xs={12} sm={6} md={4}>
+        <MuiGrid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard
             title="작업자"
             count={stats.workerCount}
@@ -265,7 +266,7 @@ const Dashboard = () => {
             linkTo="/workers"
           />
         </MuiGrid>
-        <MuiGrid item xs={12} sm={6} md={4}>
+        <MuiGrid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard
             title="작업 일정"
             count={stats.scheduleCount}
@@ -274,7 +275,7 @@ const Dashboard = () => {
             linkTo="/schedules"
           />
         </MuiGrid>
-        <MuiGrid item xs={12} sm={6} md={4}>
+        <MuiGrid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard
             title="계약"
             count={stats.contractCount}
@@ -283,7 +284,7 @@ const Dashboard = () => {
             linkTo="/contracts"
           />
         </MuiGrid>
-        <MuiGrid item xs={12} sm={6} md={4}>
+        <MuiGrid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard
             title="정산"
             count={stats.paymentCount}
@@ -300,7 +301,7 @@ const Dashboard = () => {
           빠른 작업
         </Typography>
         <MuiGrid container spacing={2}>
-          <MuiGrid item xs={6} sm={4} md={2}>
+          <MuiGrid size={{ xs: 12, sm: 6, md: 4 }}>
             <Paper
               sx={{
                 p: 2,
@@ -333,7 +334,7 @@ const Dashboard = () => {
 
       {/* Recent activities */}
       <MuiGrid container spacing={4}>
-        <MuiGrid item xs={12} md={8}>
+        <MuiGrid size={{ xs: 12, sm: 6, md: 8 }}>
           <Paper sx={{ p: 3, borderRadius: 2, height: '100%' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h5" fontWeight="bold">
@@ -398,7 +399,7 @@ const Dashboard = () => {
         </MuiGrid>
 
         {/* Calendar preview */}
-        <MuiGrid item xs={12} md={4}>
+        <MuiGrid size={{ xs: 12, sm: 6, md: 4 }}>
           <Paper sx={{ p: 3, borderRadius: 2, height: '100%' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h5" fontWeight="bold">

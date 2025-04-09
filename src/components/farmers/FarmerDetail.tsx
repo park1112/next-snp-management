@@ -189,7 +189,7 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
             {/* Basic Info Panel */}
             <TabPanel value={tabValue} index={0}>
                 <Grid container spacing={3}>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, sm: 6, md: 6 }}>
                         <Paper elevation={0} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
                             <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                                 <PersonIcon sx={{ mr: 1 }} />
@@ -280,10 +280,10 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
                         </Paper>
                     </Grid>
 
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, sm: 6, md: 6 }}>
                         <Grid container spacing={3}>
                             {/* Address Info */}
-                            <Grid item xs={12}>
+                            <Grid size={{ xs: 12 }}>
                                 <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
                                     <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                                         <HomeIcon sx={{ mr: 1 }} />
@@ -320,7 +320,7 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
                             </Grid>
 
                             {/* Bank Info */}
-                            <Grid item xs={12}>
+                            <Grid size={{ xs: 12 }}>
                                 <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
                                     <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                                         <BankIcon sx={{ mr: 1 }} />
@@ -365,7 +365,7 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
 
                             {/* Memo */}
                             {farmer.memo && (
-                                <Grid item xs={12}>
+                                <Grid size={{ xs: 12 }}>
                                     <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
                                         <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>메모</Typography>
                                         <Typography>{farmer.memo}</Typography>
@@ -419,7 +419,7 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
                 ) : viewMode === 'list' ? (
                     <Grid container spacing={2}>
                         {fields.map((field) => (
-                            <Grid item xs={12} sm={6} md={4} key={field.id}>
+                            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={field.id}>
                                 <Card
                                     sx={{
                                         borderRadius: 2,
@@ -450,7 +450,7 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
                                         </Box>
 
                                         <Grid container spacing={2}>
-                                            <Grid item xs={6}>
+                                            <Grid size={{ xs: 6 }}>
                                                 <Typography variant="body2" color="text.secondary" gutterBottom>
                                                     면적
                                                 </Typography>
@@ -458,7 +458,7 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
                                                     {field.area.value} {field.area.unit}
                                                 </Typography>
                                             </Grid>
-                                            <Grid item xs={6}>
+                                            <Grid size={{ xs: 6 }}>
                                                 <Typography variant="body2" color="text.secondary" gutterBottom>
                                                     작물
                                                 </Typography>
@@ -535,7 +535,7 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
                 ) : (
                     <Grid container spacing={2}>
                         {contracts.map((contract) => (
-                            <Grid item xs={12} md={6} key={contract.id}>
+                            <Grid size={{ xs: 12, sm: 6, md: 6 }} key={contract.id}>
                                 <Card
                                     sx={{
                                         borderRadius: 2,
@@ -580,7 +580,7 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
                                         </Box>
 
                                         <Grid container spacing={2}>
-                                            <Grid item xs={6}>
+                                            <Grid size={{ xs: 6, sm: 4, md: 2 }}>
                                                 <Typography variant="body2" color="text.secondary" gutterBottom>
                                                     계약 유형
                                                 </Typography>
@@ -588,7 +588,7 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
                                                     {contract.contractType}
                                                 </Typography>
                                             </Grid>
-                                            <Grid item xs={6}>
+                                            <Grid size={{ xs: 6, sm: 4, md: 2 }}>
                                                 <Typography variant="body2" color="text.secondary" gutterBottom>
                                                     총 계약금액
                                                 </Typography>

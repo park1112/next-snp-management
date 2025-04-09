@@ -161,7 +161,7 @@ export default function ForemanDetailPage() {
             <TabPanel value={tabValue} index={0}>
                 <Grid container spacing={3}>
                     {/* Personal Info */}
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }} >
                         <Paper elevation={0} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
                             <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                                 <PersonIcon sx={{ mr: 1 }} />
@@ -223,7 +223,7 @@ export default function ForemanDetailPage() {
                     </Grid>
 
                     {/* Work Info */}
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }} >
                         <Paper elevation={0} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
                             <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                                 <EngineeringIcon sx={{ mr: 1 }} />
@@ -250,11 +250,11 @@ export default function ForemanDetailPage() {
                                         primary="단가 정보"
                                         secondary={
                                             <Box>
-                                                {foreman.foremanInfo.rates.hourly > 0 ? (
+                                                {foreman.foremanInfo.rates.hourly && foreman.foremanInfo.rates.hourly > 0 ? (
                                                     <Typography variant="body1">
                                                         시급: {foreman.foremanInfo.rates.hourly.toLocaleString()}원
                                                     </Typography>
-                                                ) : foreman.foremanInfo.rates.daily > 0 ? (
+                                                ) : foreman.foremanInfo.rates.daily && foreman.foremanInfo.rates.daily > 0 ? (
                                                     <Typography variant="body1">
                                                         일당: {foreman.foremanInfo.rates.daily.toLocaleString()}원
                                                     </Typography>
@@ -274,7 +274,7 @@ export default function ForemanDetailPage() {
 
                     {/* Address */}
                     {foreman.address?.full && (
-                        <Grid item xs={12} md={6}>
+                        <Grid size={{ xs: 12, md: 6 }} >
                             <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
                                 <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                                     <HomeIcon sx={{ mr: 1 }} />
@@ -304,7 +304,7 @@ export default function ForemanDetailPage() {
 
                     {/* Bank Info */}
                     {foreman.bankInfo?.bankName && (
-                        <Grid item xs={12} md={6}>
+                        <Grid size={{ xs: 12, md: 6 }} >
                             <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
                                 <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                                     <BankIcon sx={{ mr: 1 }} />
@@ -346,7 +346,7 @@ export default function ForemanDetailPage() {
 
                     {/* Memo */}
                     {foreman.memo && (
-                        <Grid item xs={12}>
+                        <Grid size={{ xs: 12 }} >
                             <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
                                 <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>메모</Typography>
                                 <Typography>{foreman.memo}</Typography>

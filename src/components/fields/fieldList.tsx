@@ -121,7 +121,7 @@ const FieldList: React.FC<FieldListProps> = ({ initialFields = [] }) => {
                 // Load subdistricts for filter
                 const subdistricts = await getSubdistricts();
                 setSubdistrictOptions(
-                    subdistricts.map((item) => ({ value: item, label: item }))
+                    subdistricts.map((item: string) => ({ value: item, label: item }))
                 );
             } catch (error) {
                 console.error('Error loading fields:', error);
@@ -397,7 +397,7 @@ const FieldList: React.FC<FieldListProps> = ({ initialFields = [] }) => {
             <Card elevation={0} sx={{ mb: 3, borderRadius: 2 }}>
                 <CardContent>
                     <Grid container spacing={2}>
-                        <Grid item xs={12} md={7}>
+                        <Grid size={{ xs: 12, sm: 6, md: 7 }}>
                             <Box sx={{ display: 'flex', gap: 1 }}>
                                 <FormControl size="small" sx={{ minWidth: 120 }}>
                                     <InputLabel>검색 유형</InputLabel>
@@ -452,7 +452,7 @@ const FieldList: React.FC<FieldListProps> = ({ initialFields = [] }) => {
                             </Box>
                         </Grid>
 
-                        <Grid item xs={12} md={5}>
+                        <Grid size={{ xs: 12, sm: 6, md: 5 }}>
                             <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
                                 <Button
                                     variant="outlined"
@@ -468,7 +468,6 @@ const FieldList: React.FC<FieldListProps> = ({ initialFields = [] }) => {
                                         value={sortOption}
                                         label="정렬"
                                         onChange={handleSortChange}
-                                        startIcon={<SortIcon />}
                                     >
                                         <MenuItem value="latest">최근 등록순</MenuItem>
                                         <MenuItem value="oldest">오래된순</MenuItem>
@@ -482,7 +481,7 @@ const FieldList: React.FC<FieldListProps> = ({ initialFields = [] }) => {
 
                         {/* Filters */}
                         {showFilters && (
-                            <Grid item xs={12}>
+                            <Grid size={{ xs: 12 }}>
                                 <Divider sx={{ my: 2 }} />
                                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                                     <FormControl sx={{ minWidth: 200 }} size="small">
@@ -581,7 +580,7 @@ const FieldList: React.FC<FieldListProps> = ({ initialFields = [] }) => {
             {!loading && processedFields.length > 0 && viewMode === 'grid' && (
                 <Grid container spacing={2}>
                     {paginatedFields.map((field) => (
-                        <Grid item xs={12} sm={6} md={4} lg={3} key={field.id}>
+                        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={field.id}>
                             <Card
                                 sx={{
                                     height: '100%',

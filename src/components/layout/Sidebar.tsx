@@ -1,7 +1,7 @@
 // src/components/layout/Sidebar.tsx
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -36,7 +36,8 @@ import {
     Groups as GroupsIcon,
     DirectionsCar as CarsIcon,
     CalendarMonth,
-    Map
+    Map,
+    Add as AddIcon
 } from '@mui/icons-material';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -52,12 +53,12 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
     // Menu expansion states
-    const [farmersOpen, setFarmersOpen] = React.useState(pathname?.includes('/farmers'));
-    const [fieldsOpen, setFieldsOpen] = React.useState(pathname?.includes('/fields'));
-    const [workersOpen, setWorkersOpen] = React.useState(pathname?.includes('/workers'));
-    const [schedulesOpen, setSchedulesOpen] = React.useState(pathname?.includes('/schedules'));
-    const [contractsOpen, setContractsOpen] = React.useState(pathname?.includes('/contracts'));
-    const [paymentsOpen, setPaymentsOpen] = React.useState(pathname?.includes('/payments'));
+    const [farmersOpen, setFarmersOpen] = useState(pathname?.includes('/farmers'));
+    const [fieldsOpen, setFieldsOpen] = useState(pathname?.includes('/fields'));
+    const [workersOpen, setWorkersOpen] = useState(pathname?.includes('/workers'));
+    const [schedulesOpen, setSchedulesOpen] = useState(pathname?.includes('/schedules'));
+    const [contractsOpen, setContractsOpen] = useState(pathname?.includes('/contracts'));
+    const [paymentsOpen, setPaymentsOpen] = useState(pathname?.includes('/payments'));
 
     // Toggle handlers
     const toggleFarmers = () => setFarmersOpen(!farmersOpen);
@@ -160,7 +161,14 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                             mb: 0.5,
                             '&:hover': {
                                 bgcolor: 'rgba(0, 0, 0, 0.04)',
-                            }
+                            },
+                            ...(pathname?.includes('/farmers') && !pathname?.includes('/farmers/add') && {
+                                bgcolor: 'primary.light',
+                                color: 'primary.main',
+                                '& .MuiListItemIcon-root': {
+                                    color: 'primary.main',
+                                }
+                            })
                         }}
                     >
                         <ListItemIcon>
@@ -172,6 +180,221 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                 </ListItem>
                 <Collapse in={farmersOpen} timeout="auto" unmountOnExit>
                     <List component="div" disablePadding>
+                        <ListItemButton
+                            sx={{ pl: 4, borderRadius: 1, mb: 0.5 }}
+                            component={Link}
+                            href="/farmers"
+                            selected={pathname === '/farmers'}
+                            onClick={handleLinkClick}
+                        >
+                            <ListItemText primary="농가 목록" />
+                        </ListItemButton>
+                        <ListItemButton
+                            sx={{ pl: 4, borderRadius: 1, mb: 0.5 }}
+                            component={Link}
+                            href="/farmers/add"
+                            selected={pathname === '/farmers/add'}
+                            onClick={handleLinkClick}
+                        >
+                            <ListItemIcon>
+                                <AddIcon fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText primary="농가 등록" />
+                        </ListItemButton>
+                    </List>
+                </Collapse>
+
+                {/* Fields */}
+                <ListItem disablePadding>
+                    <ListItemButton
+                        onClick={toggleFields}
+                        sx={{
+                            borderRadius: 1,
+                            mb: 0.5,
+                            '&:hover': {
+                                bgcolor: 'rgba(0, 0, 0, 0.04)',
+                            },
+                            ...(pathname?.includes('/fields') && !pathname?.includes('/fields/add') && {
+                                bgcolor: 'primary.light',
+                                color: 'primary.main',
+                                '& .MuiListItemIcon-root': {
+                                    color: 'primary.main',
+                                }
+                            })
+                        }}
+                    >
+                        <ListItemIcon>
+                            <TerrainIcon />
+                        </ListItemIcon>
+                        <ListItemText primary="농지 관리" />
+                        {fieldsOpen ? <ExpandLess /> : <ExpandMore />}
+                    </ListItemButton>
+                </ListItem>
+                <Collapse in={fieldsOpen} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding>
+                        <ListItemButton
+                            sx={{ pl: 4, borderRadius: 1, mb: 0.5 }}
+                            component={Link}
+                            href="/fields"
+                            selected={pathname === '/fields'}
+                            onClick={handleLinkClick}
+                        >
+                            <ListItemText primary="농지 목록" />
+                        </ListItemButton>
+                        <ListItemButton
+                            sx={{ pl: 4, borderRadius: 1, mb: 0.5 }}
+                            component={Link}
+                            href="/fields/map"
+                            selected={pathname === '/fields/map'}
+                            onClick={handleLinkClick}
+                        >
+                            <ListItemIcon>
+                                <Map fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText primary="지도 보기" />
+                        </ListItemButton>
+                        <ListItemButton
+                            sx={{ pl: 4, borderRadius: 1, mb: 0.5 }}
+                            component={Link}
+                            href="/fields/add"
+                            selected={pathname === '/fields/add'}
+                            onClick={handleLinkClick}
+                        >
+                            <ListItemIcon>
+                                <AddIcon fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText primary="농지 등록" />
+                        </ListItemButton>
+                    </List>
+                </Collapse>
+
+                {/* Workers */}
+                <ListItem disablePadding>
+                    <ListItemButton
+                        onClick={toggleWorkers}
+                        sx={{
+                            borderRadius: 1,
+                            mb: 0.5,
+                            '&:hover': {
+                                bgcolor: 'rgba(0, 0, 0, 0.04)',
+                            },
+                            ...(pathname?.includes('/workers') &&
+                                !pathname?.includes('/workers/foremen/add') &&
+                                !pathname?.includes('/workers/drivers/add') && {
+                                bgcolor: 'primary.light',
+                                color: 'primary.main',
+                                '& .MuiListItemIcon-root': {
+                                    color: 'primary.main',
+                                }
+                            })
+                        }}
+                    >
+                        <ListItemIcon>
+                            <EngineeringIcon />
+                        </ListItemIcon>
+                        <ListItemText primary="작업자 관리" />
+                        {workersOpen ? <ExpandLess /> : <ExpandMore />}
+                    </ListItemButton>
+                </ListItem>
+                <Collapse in={workersOpen} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding>
+                        <ListItemButton
+                            sx={{ pl: 4, borderRadius: 1, mb: 0.5 }}
+                            component={Link}
+                            href="/workers"
+                            selected={pathname === '/workers'}
+                            onClick={handleLinkClick}
+                        >
+                            <ListItemText primary="전체 작업자" />
+                        </ListItemButton>
+                        <ListItemButton
+                            sx={{ pl: 4, borderRadius: 1, mb: 0.5 }}
+                            component={Link}
+                            href="/workers/foremen"
+                            selected={pathname === '/workers/foremen'}
+                            onClick={handleLinkClick}
+                        >
+                            <ListItemIcon>
+                                <GroupsIcon fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText primary="작업반장" />
+                        </ListItemButton>
+                        <ListItemButton
+                            sx={{ pl: 4, borderRadius: 1, mb: 0.5 }}
+                            component={Link}
+                            href="/workers/foremen/add"
+                            selected={pathname === '/workers/foremen/add'}
+                            onClick={handleLinkClick}
+                        >
+                            <ListItemIcon>
+                                <AddIcon fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText primary="작업반장 등록" />
+                        </ListItemButton>
+                        <ListItemButton
+                            sx={{ pl: 4, borderRadius: 1, mb: 0.5 }}
+                            component={Link}
+                            href="/workers/drivers"
+                            selected={pathname === '/workers/drivers'}
+                            onClick={handleLinkClick}
+                        >
+                            <ListItemIcon>
+                                <CarsIcon fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText primary="운송기사" />
+                        </ListItemButton>
+                        <ListItemButton
+                            sx={{ pl: 4, borderRadius: 1, mb: 0.5 }}
+                            component={Link}
+                            href="/workers/drivers/add"
+                            selected={pathname === '/workers/drivers/add'}
+                            onClick={handleLinkClick}
+                        >
+                            <ListItemIcon>
+                                <AddIcon fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText primary="운송기사 등록" />
+                        </ListItemButton>
+                    </List>
+                </Collapse>
+
+                {/* Schedules */}
+                <ListItem disablePadding>
+                    <ListItemButton
+                        onClick={toggleSchedules}
+                        sx={{
+                            borderRadius: 1,
+                            mb: 0.5,
+                            '&:hover': {
+                                bgcolor: 'rgba(0, 0, 0, 0.04)',
+                            },
+                            ...(pathname?.includes('/schedules') && {
+                                bgcolor: 'primary.light',
+                                color: 'primary.main',
+                                '& .MuiListItemIcon-root': {
+                                    color: 'primary.main',
+                                }
+                            })
+                        }}
+                    >
+                        <ListItemIcon>
+                            <EventNoteIcon />
+                        </ListItemIcon>
+                        <ListItemText primary="작업 일정" />
+                        {schedulesOpen ? <ExpandLess /> : <ExpandMore />}
+                    </ListItemButton>
+                </ListItem>
+                <Collapse in={schedulesOpen} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding>
+                        <ListItemButton
+                            sx={{ pl: 4, borderRadius: 1, mb: 0.5 }}
+                            component={Link}
+                            href="/schedules"
+                            selected={pathname === '/schedules'}
+                            onClick={handleLinkClick}
+                        >
+                            <ListItemText primary="일정 목록" />
+                        </ListItemButton>
                         <ListItemButton
                             sx={{ pl: 4, borderRadius: 1, mb: 0.5 }}
                             component={Link}
@@ -191,6 +414,9 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                             selected={pathname === '/schedules/add'}
                             onClick={handleLinkClick}
                         >
+                            <ListItemIcon>
+                                <AddIcon fontSize="small" />
+                            </ListItemIcon>
                             <ListItemText primary="작업 등록" />
                         </ListItemButton>
                     </List>
@@ -205,7 +431,14 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                             mb: 0.5,
                             '&:hover': {
                                 bgcolor: 'rgba(0, 0, 0, 0.04)',
-                            }
+                            },
+                            ...(pathname?.includes('/contracts') && {
+                                bgcolor: 'primary.light',
+                                color: 'primary.main',
+                                '& .MuiListItemIcon-root': {
+                                    color: 'primary.main',
+                                }
+                            })
                         }}
                     >
                         <ListItemIcon>
@@ -233,6 +466,9 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                             selected={pathname === '/contracts/add'}
                             onClick={handleLinkClick}
                         >
+                            <ListItemIcon>
+                                <AddIcon fontSize="small" />
+                            </ListItemIcon>
                             <ListItemText primary="계약 등록" />
                         </ListItemButton>
                     </List>
@@ -247,7 +483,14 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                             mb: 0.5,
                             '&:hover': {
                                 bgcolor: 'rgba(0, 0, 0, 0.04)',
-                            }
+                            },
+                            ...(pathname?.includes('/payments') && {
+                                bgcolor: 'primary.light',
+                                color: 'primary.main',
+                                '& .MuiListItemIcon-root': {
+                                    color: 'primary.main',
+                                }
+                            })
                         }}
                     >
                         <ListItemIcon>
@@ -275,6 +518,9 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                             selected={pathname === '/payments/add'}
                             onClick={handleLinkClick}
                         >
+                            <ListItemIcon>
+                                <AddIcon fontSize="small" />
+                            </ListItemIcon>
                             <ListItemText primary="정산 등록" />
                         </ListItemButton>
                         <ListItemButton

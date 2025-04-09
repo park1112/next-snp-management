@@ -84,7 +84,7 @@ const FarmerList: React.FC<FarmerListProps> = ({ initialFarmers = [] }) => {
                 // Load subdistricts for filter
                 const subdistricts = await getSubdistricts();
                 setSubdistrictOptions(
-                    subdistricts.map((item) => ({ value: item, label: item }))
+                    subdistricts.map((item: string) => ({ value: item, label: item }))
                 );
             } catch (error) {
                 console.error('Error loading farmers:', error);
@@ -229,7 +229,7 @@ const FarmerList: React.FC<FarmerListProps> = ({ initialFarmers = [] }) => {
             <Card elevation={0} sx={{ mb: 3, borderRadius: 2 }}>
                 <CardContent>
                     <Grid container spacing={2}>
-                        <Grid item xs={12} md={7}>
+                        <Grid size={{ xs: 12, sm: 6, md: 7 }}>
                             <Box sx={{ display: 'flex', gap: 1 }}>
                                 <FormControl size="small" sx={{ minWidth: 120 }}>
                                     <InputLabel>검색 유형</InputLabel>
@@ -284,7 +284,7 @@ const FarmerList: React.FC<FarmerListProps> = ({ initialFarmers = [] }) => {
                             </Box>
                         </Grid>
 
-                        <Grid item xs={12} md={5}>
+                        <Grid size={{ xs: 12, sm: 6, md: 5 }}>
                             <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
                                 <Button
                                     variant="outlined"
@@ -299,7 +299,6 @@ const FarmerList: React.FC<FarmerListProps> = ({ initialFarmers = [] }) => {
                                     <Select
                                         value="name"
                                         label="정렬"
-                                        startIcon={<SortIcon />}
                                     >
                                         <MenuItem value="name">이름순</MenuItem>
                                         <MenuItem value="latest">최근 등록순</MenuItem>
@@ -311,7 +310,7 @@ const FarmerList: React.FC<FarmerListProps> = ({ initialFarmers = [] }) => {
 
                         {/* Filters */}
                         {showFilters && (
-                            <Grid item xs={12}>
+                            <Grid size={{ xs: 12 }}>
                                 <Divider sx={{ my: 2 }} />
                                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                                     <FormControl sx={{ minWidth: 200 }} size="small">
@@ -378,7 +377,7 @@ const FarmerList: React.FC<FarmerListProps> = ({ initialFarmers = [] }) => {
             {!loading && filteredFarmers.length > 0 && !isMapView && (
                 <Grid container spacing={2}>
                     {paginatedFarmers.map((farmer) => (
-                        <Grid item xs={12} sm={6} md={4} lg={3} key={farmer.id}>
+                        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={farmer.id}>
                             <Card
                                 sx={{
                                     height: '100%',
