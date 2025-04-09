@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import {
     Box,
@@ -27,7 +27,6 @@ import {
     Email,
     CalendarMonth
 } from '@mui/icons-material';
-import { auth } from '../../../firebase/firebaseClient';
 import { updateProfile } from 'firebase/auth';
 import Link from 'next/link';
 

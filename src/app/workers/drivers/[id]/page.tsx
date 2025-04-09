@@ -6,6 +6,7 @@ import { Box, CircularProgress, Alert, Paper, Typography, Grid, Divider, Button,
 import { ArrowBack as ArrowBackIcon, Edit as EditIcon, Delete as DeleteIcon, Phone as PhoneIcon, Home as HomeIcon, Person as PersonIcon, Place as PlaceIcon, AccountBalance as BankIcon, DirectionsCar as CarIcon, Money as MoneyIcon, Event as EventIcon } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { useWorker } from '@/hooks/useWorkers';
+import { Driver } from '@/types';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -103,7 +104,7 @@ export default function DriverDetailPage() {
         );
     }
 
-    const driver = worker;
+    const driver = worker as Driver;
 
     return (
         <MainLayout>
@@ -160,7 +161,7 @@ export default function DriverDetailPage() {
             <TabPanel value={tabValue} index={0}>
                 <Grid container spacing={3}>
                     {/* Personal Info */}
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <Paper elevation={0} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
                             <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                                 <PersonIcon sx={{ mr: 1 }} />
@@ -173,8 +174,10 @@ export default function DriverDetailPage() {
                                     <ListItemText
                                         primary="이름"
                                         secondary={driver.name}
-                                        primaryTypographyProps={{ color: 'text.secondary', variant: 'body2' }}
-                                        secondaryTypographyProps={{ color: 'text.primary', variant: 'body1' }}
+                                        slotProps={{
+                                            primary: { color: 'text.secondary', variant: 'body2' },
+                                            secondary: { color: 'text.primary', variant: 'body1' }
+                                        }}
                                     />
                                 </ListItem>
 
@@ -193,8 +196,10 @@ export default function DriverDetailPage() {
                                                 </IconButton>
                                             </Box>
                                         }
-                                        primaryTypographyProps={{ color: 'text.secondary', variant: 'body2' }}
-                                        secondaryTypographyProps={{ color: 'text.primary', variant: 'body1' }}
+                                        slotProps={{
+                                            primary: { color: 'text.secondary', variant: 'body2' },
+                                            secondary: { color: 'text.primary', variant: 'body1' }
+                                        }}
                                     />
                                 </ListItem>
 
@@ -203,8 +208,10 @@ export default function DriverDetailPage() {
                                         <ListItemText
                                             primary="주민등록번호"
                                             secondary={driver.personalId}
-                                            primaryTypographyProps={{ color: 'text.secondary', variant: 'body2' }}
-                                            secondaryTypographyProps={{ color: 'text.primary', variant: 'body1' }}
+                                            slotProps={{
+                                                primary: { color: 'text.secondary', variant: 'body2' },
+                                                secondary: { color: 'text.primary', variant: 'body1' }
+                                            }}
                                         />
                                     </ListItem>
                                 )}
@@ -213,8 +220,10 @@ export default function DriverDetailPage() {
                                     <ListItemText
                                         primary="등록일"
                                         secondary={driver.createdAt ? new Date(driver.createdAt).toLocaleDateString('ko-KR') : '-'}
-                                        primaryTypographyProps={{ color: 'text.secondary', variant: 'body2' }}
-                                        secondaryTypographyProps={{ color: 'text.primary', variant: 'body1' }}
+                                        slotProps={{
+                                            primary: { color: 'text.secondary', variant: 'body2' },
+                                            secondary: { color: 'text.primary', variant: 'body1' }
+                                        }}
                                     />
                                 </ListItem>
                             </List>
@@ -222,7 +231,7 @@ export default function DriverDetailPage() {
                     </Grid>
 
                     {/* Vehicle Info */}
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <Paper elevation={0} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
                             <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                                 <CarIcon sx={{ mr: 1 }} />
@@ -235,8 +244,10 @@ export default function DriverDetailPage() {
                                     <ListItemText
                                         primary="차량번호"
                                         secondary={driver.driverInfo.vehicleNumber}
-                                        primaryTypographyProps={{ color: 'text.secondary', variant: 'body2' }}
-                                        secondaryTypographyProps={{ color: 'text.primary', variant: 'body1', fontWeight: 'medium' }}
+                                        slotProps={{
+                                            primary: { color: 'text.secondary', variant: 'body2' },
+                                            secondary: { color: 'text.primary', variant: 'body1', fontWeight: 'medium' }
+                                        }}
                                     />
                                 </ListItem>
 
@@ -244,8 +255,10 @@ export default function DriverDetailPage() {
                                     <ListItemText
                                         primary="차량 종류"
                                         secondary={driver.driverInfo.vehicleType}
-                                        primaryTypographyProps={{ color: 'text.secondary', variant: 'body2' }}
-                                        secondaryTypographyProps={{ color: 'text.primary', variant: 'body1' }}
+                                        slotProps={{
+                                            primary: { color: 'text.secondary', variant: 'body2' },
+                                            secondary: { color: 'text.primary', variant: 'body1' }
+                                        }}
                                     />
                                 </ListItem>
 
@@ -253,8 +266,10 @@ export default function DriverDetailPage() {
                                     <ListItemText
                                         primary="구분"
                                         secondary={driver.driverInfo.category}
-                                        primaryTypographyProps={{ color: 'text.secondary', variant: 'body2' }}
-                                        secondaryTypographyProps={{ color: 'text.primary', variant: 'body1' }}
+                                        slotProps={{
+                                            primary: { color: 'text.secondary', variant: 'body2' },
+                                            secondary: { color: 'text.primary', variant: 'body1' }
+                                        }}
                                     />
                                 </ListItem>
 
@@ -273,14 +288,16 @@ export default function DriverDetailPage() {
                                                     </Typography>
                                                 )}
 
-                                                {driver.driverInfo.rates.distanceRate > 0 && (
+                                                {driver.driverInfo.rates.distanceRate && driver.driverInfo.rates.distanceRate > 0 && (
                                                     <Typography variant="body1">
                                                         거리별 추가 요금: km당 {driver.driverInfo.rates.distanceRate.toLocaleString()}원
                                                     </Typography>
                                                 )}
                                             </Box>
                                         }
-                                        primaryTypographyProps={{ color: 'text.secondary', variant: 'body2' }}
+                                        slotProps={{
+                                            primary: { color: 'text.secondary', variant: 'body2' }
+                                        }}
                                     />
                                 </ListItem>
                             </List>
@@ -289,9 +306,142 @@ export default function DriverDetailPage() {
 
                     {/* Address */}
                     {driver.address?.full && (
-                        <Grid item xs={12} md={6}>
+                        <Grid size={{ xs: 12, md: 6 }}>
                             <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
                                 <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                                     <HomeIcon sx={{ mr: 1 }} />
                                     주소 정보
                                 </Typography>
+                                <Divider sx={{ mb: 2 }} />
+
+                                <List disablePadding>
+                                    <ListItem sx={{ px: 0, py: 1 }}>
+                                        <ListItemText
+                                            primary="주소"
+                                            secondary={
+                                                <Box>
+                                                    <Typography variant="body1">{driver.address.full}</Typography>
+                                                    {driver.address.detail && (
+                                                        <Typography variant="body1">{driver.address.detail}</Typography>
+                                                    )}
+                                                </Box>
+                                            }
+                                            slotProps={{
+                                                primary: { color: 'text.secondary', variant: 'body2' }
+                                            }}
+                                        />
+                                    </ListItem>
+                                </List>
+                            </Paper>
+                        </Grid>
+                    )}
+
+                    {/* Bank Info */}
+                    {driver.bankInfo?.bankName && (
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
+                                <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                    <BankIcon sx={{ mr: 1 }} />
+                                    계좌 정보
+                                </Typography>
+                                <Divider sx={{ mb: 2 }} />
+
+                                <List disablePadding>
+                                    <ListItem sx={{ px: 0, py: 1 }}>
+                                        <ListItemText
+                                            primary="은행"
+                                            secondary={driver.bankInfo.bankName}
+                                            slotProps={{
+                                                primary: { color: 'text.secondary', variant: 'body2' },
+                                                secondary: { color: 'text.primary', variant: 'body1' }
+                                            }}
+                                        />
+                                    </ListItem>
+
+                                    <ListItem sx={{ px: 0, py: 1 }}>
+                                        <ListItemText
+                                            primary="계좌번호"
+                                            secondary={driver.bankInfo.accountNumber}
+                                            slotProps={{
+                                                primary: { color: 'text.secondary', variant: 'body2' },
+                                                secondary: { color: 'text.primary', variant: 'body1' }
+                                            }}
+                                        />
+                                    </ListItem>
+
+                                    <ListItem sx={{ px: 0, py: 1 }}>
+                                        <ListItemText
+                                            primary="예금주"
+                                            secondary={driver.bankInfo.accountHolder}
+                                            slotProps={{
+                                                primary: { color: 'text.secondary', variant: 'body2' },
+                                                secondary: { color: 'text.primary', variant: 'body1' }
+                                            }}
+                                        />
+                                    </ListItem>
+                                </List>
+                            </Paper>
+                        </Grid>
+                    )}
+
+                    {/* Memo */}
+                    {driver.memo && (
+                        <Grid size={12}>
+                            <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
+                                <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>메모</Typography>
+                                <Typography>{driver.memo}</Typography>
+                            </Paper>
+                        </Grid>
+                    )}
+                </Grid>
+            </TabPanel>
+
+            {/* Transport History Tab */}
+            <TabPanel value={tabValue} index={1}>
+                <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
+                    <Box sx={{ textAlign: 'center', py: 5 }}>
+                        <Typography variant="body1" color="text.secondary">
+                            운송 이력 기능은 준비 중입니다.
+                        </Typography>
+                    </Box>
+                </Paper>
+            </TabPanel>
+
+            {/* Payment History Tab */}
+            <TabPanel value={tabValue} index={2}>
+                <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
+                    <Box sx={{ textAlign: 'center', py: 5 }}>
+                        <Typography variant="body1" color="text.secondary">
+                            정산 내역 기능은 준비 중입니다.
+                        </Typography>
+                    </Box>
+                </Paper>
+            </TabPanel>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog
+                open={deleteDialogOpen}
+                onClose={handleDeleteCancel}
+                aria-labelledby="alert-dialog-title"
+                aria-describedby="alert-dialog-description"
+            >
+                <DialogTitle id="alert-dialog-title">
+                    운송기사 삭제 확인
+                </DialogTitle>
+                <DialogContent>
+                    <DialogContentText id="alert-dialog-description">
+                        {`"${driver.name}" 운송기사를 정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`}
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleDeleteCancel} color="inherit">
+                        취소
+                    </Button>
+                    <Button onClick={handleDeleteConfirm} color="error" autoFocus>
+                        삭제
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </MainLayout>
+    );
+}

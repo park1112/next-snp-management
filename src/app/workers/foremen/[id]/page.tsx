@@ -6,6 +6,7 @@ import { Box, CircularProgress, Alert, Paper, Typography, Grid, Divider, Button,
 import { ArrowBack as ArrowBackIcon, Edit as EditIcon, Delete as DeleteIcon, Phone as PhoneIcon, Home as HomeIcon, Person as PersonIcon, Place as PlaceIcon, AccountBalance as BankIcon, Engineering as EngineeringIcon, Money as MoneyIcon, Event as EventIcon } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { useWorker } from '@/hooks/useWorkers';
+import { Worker, Foreman } from '@/types';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -103,7 +104,7 @@ export default function ForemanDetailPage() {
         );
     }
 
-    const foreman = worker;
+    const foreman = worker as Foreman;
 
     return (
         <MainLayout>

@@ -2,7 +2,6 @@ import React from 'react';
 import './global.css';
 import ClientProviders from '@/components/ClientProviders';
 import { AppProvider } from '@/contexts/AppContext';
-import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { ko } from 'date-fns/locale';
 
@@ -16,11 +15,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko">
       <body>
         <ClientProviders>
-          <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ko}>
-            <AppProvider>
-              {children}
-            </AppProvider>
-          </LocalizationProvider>
+          <AppProvider>
+            {children}
+          </AppProvider>
         </ClientProviders>
       </body>
     </html>

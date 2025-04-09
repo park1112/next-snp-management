@@ -18,7 +18,7 @@ import {
     endAt,
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
 import { Field, Farmer } from '@/types';
 import { getFarmerById } from './farmerService';
 
