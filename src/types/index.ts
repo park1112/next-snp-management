@@ -139,6 +139,10 @@ export interface Schedule {
     fieldId: string;      // 농지 ID 참조
     farmerId: string;     // 농가 ID 참조
     workerId: string;     // 작업자 ID 참조
+    farmerName?: string;  // UI 표시용 농가 이름
+    fieldName?: string;   // UI 표시용 농지 이름
+    fieldAddress?: string; // UI 표시용 농지 주소
+    workerName?: string;  // UI 표시용 작업자 이름
     stage: {
         current: string;    // 진행 상태 (준비, 진행중, 완료 등)
         history: {          // 상태 변경 이력
@@ -184,6 +188,16 @@ export interface Schedule {
             unit: string;
         };
         distance?: number;  // km
+        distanceRate?: number; // km당 추가 요금
+        additionalFee?: number; // 추가 요금
+    };
+    additionalInfo?: {    // 작업 유형별 추가 정보
+        cropType?: string;           // 대상 작물
+        expectedQuantity?: number;    // 예상 작업량
+        cuttingMethod?: string;       // 절단 방식
+        specialRequirements?: string; // 기타 요청사항
+        packagingType?: string;       // 포장 유형
+        expectedPackages?: number;    // 예상 포장 수량
     };
     paymentStatus: 'pending' | 'requested' | 'onhold' | 'completed'; // 작업완료, 입금요청, 입금보류, 입금완료
     paymentId?: string;   // 결제 ID 참조 (결제 완료 시)

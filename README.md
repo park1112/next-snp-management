@@ -14,6 +14,10 @@
 
 
 ## 버전 히스토리
+- **v0.0.4**
+   - ContractDetail, ContractForm 미완성 나머지 코드들은 거의다완성,
+   - 
+
 - **v0.0.3**
    - 버그 pix
 
