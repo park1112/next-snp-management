@@ -1,9 +1,7 @@
+// src/app/layout.tsx
 import React from 'react';
 import './global.css';
 import ClientProviders from '@/components/ClientProviders';
-import { AppProvider } from '@/contexts/AppContext';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { ko } from 'date-fns/locale';
 
 export const metadata = {
   title: '팜매니지먼트 - 농가, 농지, 작업자 관리 시스템',
@@ -13,11 +11,12 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
+      <head>
+        {/* 필요한 메타 태그들을 추가하세요 */}
+      </head>
       <body>
         <ClientProviders>
-          <AppProvider>
-            {children}
-          </AppProvider>
+          {children}
         </ClientProviders>
       </body>
     </html>

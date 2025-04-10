@@ -96,6 +96,9 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
     const [formData, setFormData] = useState<Partial<Field>>(initialData || {
         farmerId: farmerId || '',
         farmerName: '',
+        phoneNumber: '',
+        paymentGroup: '',
+        subdistrict: '',
         address: {
             full: '',
             detail: '',
@@ -168,6 +171,9 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
                             ...prevData,
                             farmerId: farmerId,
                             farmerName: farmer.name,
+                            phoneNumber: farmer.phoneNumber,
+                            paymentGroup: farmer.paymentGroup,
+                            subdistrict: farmer.subdistrict,
                         }));
                     }
                 }
@@ -253,6 +259,9 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
                 ...formData,
                 farmerId: newValue.id,
                 farmerName: newValue.name,
+                phoneNumber: newValue.phoneNumber,
+                paymentGroup: newValue.paymentGroup,
+                subdistrict: newValue.subdistrict,
             });
 
             // 농가 관련 오류 제거
@@ -267,6 +276,9 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
                 ...formData,
                 farmerId: '',
                 farmerName: '',
+                phoneNumber: '',
+                paymentGroup: '',
+                subdistrict: '',
             });
         }
     };
@@ -317,16 +329,116 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
         setShowAddDialog(false);
     };
 
-    // 주소 검색 핸들러 (실제 구현은 주소 API 연동 필요)
+    // 주소 검색 핸들러 - 카카오 주소 검색 API 연동
     const handleAddressSearch = () => {
-        // 주소 API 연동 필요 (Daum 주소 API 등)
-        // 테스트용 주소 입력
-        setFormData({
-            ...formData,
-            address: {
-                ...formData.address,
-                full: '경기도 화성시 동탄면 금곡리 123-45',
-            },
+        // 카카오 주소 검색 API 스크립트가 로드되어 있는지 확인
+        if (!window.daum || !window.daum.Postcode) {
+            // 스크립트 로드
+            const script = document.createElement('script');
+            script.src = "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+            script.async = true;
+            script.onload = () => openAddressSearch();
+            document.head.appendChild(script);
+        } else {
+            openAddressSearch();
+        }
+    };
+
+    // 주소 검색 창 열기
+    const openAddressSearch = () => {
+        new window.daum.Postcode({
+            oncomplete: function (data: any) {
+                // 선택한 주소 정보
+                let fullAddress = data.address;
+                let extraAddress = '';
+
+                // 법정동명이 있을 경우 추가
+                if (data.bname !== '' && /[동|로|가]$/g.test(data.bname)) {
+                    extraAddress += data.bname;
+                }
+                // 건물명이 있고, 공동주택일 경우 추가
+                if (data.buildingName !== '' && data.apartment === 'Y') {
+                    extraAddress += (extraAddress !== '' ? ', ' + data.buildingName : data.buildingName);
+                }
+                // 표시할 참고항목이 있을 경우
+                if (extraAddress !== '') {
+                    fullAddress += ' (' + extraAddress + ')';
+                }
+
+                // 주소 정보 설정
+                setFormData({
+                    ...formData,
+                    address: {
+                        ...formData.address,
+                        full: fullAddress,
+                        zipcode: data.zonecode,
+                    } as Field['address']
+                });
+
+                // 주소-좌표 변환 요청 (카카오 맵 API 사용)
+                getCoordinatesFromAddress(fullAddress);
+            }
+        }).open();
+    };
+
+    // 주소로 좌표 조회 (카카오 맵 API)
+    const getCoordinatesFromAddress = (address: string) => {
+        // 카카오 맵 API 스크립트가 로드되어 있는지 확인
+        if (!window.kakao || !window.kakao.maps) {
+            // API 키는 카카오 개발자 사이트에서 발급받아야 합니다
+            const KAKAO_API_KEY = process.env.NEXT_PUBLIC_KAKAO_MAPS_API_KEY || 'YOUR_KAKAO_API_KEY';
+            const script = document.createElement('script');
+            script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_API_KEY}&libraries=services&autoload=false`;
+            script.async = true;
+            script.onload = () => {
+                window.kakao.maps.load(() => {
+                    searchCoordinates(address);
+                });
+            };
+            document.head.appendChild(script);
+        } else {
+            searchCoordinates(address);
+        }
+    };
+
+    // 좌표 검색 실행
+    const searchCoordinates = (address: string) => {
+        if (!address || address.trim() === '') {
+            console.error('Empty address provided');
+            return;
+        }
+
+        const geocoder = new window.kakao.maps.services.Geocoder();
+
+        geocoder.addressSearch(address, (result: any, status: any) => {
+            if (status === window.kakao.maps.services.Status.OK && result.length > 0) {
+                const coordinates = {
+                    latitude: parseFloat(result[0].y),
+                    longitude: parseFloat(result[0].x)
+                };
+
+                console.log('Successfully converted address to coordinates:', coordinates);
+
+                // 좌표 정보 추가
+                setFormData(prevData => ({
+                    ...prevData,
+                    address: {
+                        ...prevData.address,
+                        coordinates
+                    } as Field['address']
+                }));
+
+                // 지도에 마커 표시 (지도 객체가 있다고 가정)
+                if (window.map) {
+                    const position = new window.kakao.maps.LatLng(coordinates.latitude, coordinates.longitude);
+                    const marker = new window.kakao.maps.Marker({ position });
+                    marker.setMap(window.map);
+                    window.map.setCenter(position);
+                }
+            } else {
+                console.error('Failed to get coordinates for address:', address, 'Status:', status);
+                // 에러 처리
+            }
         });
     };
 
@@ -361,13 +473,25 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
         setLoading(true);
 
         try {
+            // undefined 값 처리 - undefined를 null로 변환하여 Firestore 오류 방지
+            const cleanedFormData = { ...formData };
+
+            // estimatedHarvestDate가 undefined인 경우 null로 변환 또는 필드 제거
+            if (cleanedFormData.estimatedHarvestDate === undefined) {
+                // 방법 1: null로 변환 (Firestore에서는 null 허용)
+                delete cleanedFormData.estimatedHarvestDate;
+
+                // 방법 2: 필드 제거 (아예 필드를 포함하지 않음)
+                // delete cleanedFormData.estimatedHarvestDate;
+            }
+
             if (isEdit && initialData?.id) {
-                // 농지 정보 수정
-                await updateField(initialData.id, formData);
+                // 농지 정보 수정 - 정제된 데이터 사용
+                await updateField(initialData.id, cleanedFormData);
                 setSuccessMessage('농지 정보가 성공적으로 수정되었습니다.');
             } else {
-                // 새 농지 등록
-                const id = await createField(formData as Omit<Field, 'id' | 'createdAt' | 'updatedAt'>);
+                // 새 농지 등록 - 정제된 데이터 사용
+                const id = await createField(cleanedFormData as Omit<Field, 'id' | 'createdAt' | 'updatedAt'>);
                 setSuccessMessage('농지가 성공적으로 등록되었습니다.');
             }
 

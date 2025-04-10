@@ -7,7 +7,7 @@ import { Container, CircularProgress, Box, Alert } from '@mui/material';
 import ScheduleForm from '@/components/schedules/ScheduleForm';
 import { getScheduleById } from '@/services/firebase/scheduleService';
 import { Schedule } from '@/types';
-
+import MainLayout from '@/components/layout/MainLayout';
 interface EditSchedulePageProps {
   params: {
     id: string;
@@ -38,27 +38,33 @@ export default function EditSchedulePage({ params }: EditSchedulePageProps) {
 
   if (loading) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-          <CircularProgress />
-        </Box>
-      </Container>
+      <MainLayout>
+        <Container maxWidth="lg">
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+            <CircularProgress />
+          </Box>
+        </Container>
+      </MainLayout>
     );
   }
 
   if (error || !schedule) {
     return (
-      <Container maxWidth="lg">
-        <Alert severity="error">
-          작업 일정을 불러오는 중 오류가 발생했습니다.
-        </Alert>
-      </Container>
+      <MainLayout>
+        <Container maxWidth="lg">
+          <Alert severity="error">
+            작업 일정을 불러오는 중 오류가 발생했습니다.
+          </Alert>
+        </Container>
+      </MainLayout>
     );
   }
 
   return (
-    <Container maxWidth="lg">
-      <ScheduleForm initialData={schedule} isEdit={true} />
-    </Container>
+    <MainLayout>
+      <Container maxWidth="lg">
+        <ScheduleForm initialData={schedule} isEdit={true} />
+      </Container>
+    </MainLayout>
   );
 }

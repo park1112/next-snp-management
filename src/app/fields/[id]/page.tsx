@@ -4,17 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Box, CircularProgress, Alert } from '@mui/material';
 import MainLayout from '@/components/layout/MainLayout';
+import FieldDetail from '@/components/fields/FieldDetail';
 import { getFieldById } from '@/services/firebase/fieldService';
 import { Field } from '@/types';
-
-// 필드 상세 정보 컴포넌트는 별도 파일로 분리하여 구현 예정
-const FieldDetailPlaceholder = ({ field }: { field: Field }) => {
-    return (
-        <Box>
-            <pre>{JSON.stringify(field, null, 2)}</pre>
-        </Box>
-    );
-};
 
 export default function FieldDetailPage() {
     const params = useParams();
@@ -61,7 +53,7 @@ export default function FieldDetailPage() {
                     {error}
                 </Alert>
             ) : field ? (
-                <FieldDetailPlaceholder field={field} />
+                <FieldDetail field={field} address={field.address} />
             ) : (
                 <Alert severity="error" sx={{ mb: 3 }}>
                     농지 정보를 찾을 수 없습니다.

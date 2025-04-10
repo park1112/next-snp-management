@@ -152,7 +152,9 @@ export default function ClientProviders({ children }: { children: React.ReactNod
         <CacheProvider value={clientSideEmotionCache}>
             <ThemeProvider theme={theme}>
                 <CssBaseline />
-                <AuthProvider>{children}</AuthProvider>
+                <AuthProvider>
+                    {children}
+                </AuthProvider>
             </ThemeProvider>
         </CacheProvider>
     );

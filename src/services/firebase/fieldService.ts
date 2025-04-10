@@ -50,6 +50,8 @@ const convertTimestampToDate = (data: any): any => {
 };
 
 // 모든 농지 조회
+// src/services/firebase/fieldService.ts의 getFields 함수 내부에서 테스트용 좌표 추가
+
 export const getFields = async (): Promise<Field[]> => {
     try {
         const q = query(fieldsCollection, orderBy('createdAt', 'desc'));
@@ -58,7 +60,14 @@ export const getFields = async (): Promise<Field[]> => {
         const fields = await Promise.all(querySnapshot.docs.map(async doc => {
             const data = doc.data();
 
-            // 농가 정보 추가 (실제 앱에서는 효율성 위해 최적화 필요)
+            // 좌표 정보가 없는 경우 임시로 추가 (테스트용)
+            if (!data.address.coordinates) {
+                data.address.coordinates = {
+                    latitude: 37.2156 + (Math.random() * 0.1),  // 랜덤 값으로 다른 위치 생성
+                    longitude: 127.0642 + (Math.random() * 0.1)
+                };
+            }
+
             let farmerName = '';
             if (data.farmerId) {
                 const farmer = await getFarmerById(data.farmerId);

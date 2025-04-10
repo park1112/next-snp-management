@@ -4,11 +4,13 @@
 import React from 'react';
 import { Container } from '@mui/material';
 import ScheduleForm from '@/components/schedules/ScheduleForm';
-
+import MainLayout from '@/components/layout/MainLayout';
 export default function AddSchedulePage() {
   return (
-    <Container maxWidth="lg">
-      <ScheduleForm />
-    </Container>
+    <MainLayout>
+      <Container maxWidth="lg">
+        <ScheduleForm />
+      </Container>
+    </MainLayout>
   );
 }

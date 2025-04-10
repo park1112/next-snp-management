@@ -51,7 +51,10 @@ import {
     CalendarToday as CalendarIcon,
     Person as PersonIcon,
     TableRows as TableRowsIcon,
-    Dashboard as DashboardIcon
+    Dashboard as DashboardIcon,
+    Grass as GrassIcon,
+    AccountBalance as AccountBalanceIcon,
+    LocationCity as LocationCityIcon,
 } from '@mui/icons-material';
 import { Field } from '@/types';
 import { getFields, getCropTypes, deleteField } from '@/services/firebase/fieldService';
@@ -345,6 +348,12 @@ const FieldList: React.FC<FieldListProps> = ({ initialFields = [] }) => {
         return 'default';
     };
 
+    // Crop color helper
+    const getCropColor = (cropType: string) => {
+        // Implement crop color logic based on cropType
+        return 'default';
+    };
+
     return (
         <Box>
             {/* Header and actions */}
@@ -629,6 +638,13 @@ const FieldList: React.FC<FieldListProps> = ({ initialFields = [] }) => {
                                     </Box>
 
                                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                        <PhoneIcon fontSize="small" sx={{ color: 'text.secondary', mr: 1 }} />
+                                        <Typography variant="body2" color="text.secondary" noWrap>
+                                            {field.phoneNumber || '전화번호 없음'}
+                                        </Typography>
+                                    </Box>
+
+                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                                         <PlaceIcon fontSize="small" sx={{ color: 'text.secondary', mr: 1 }} />
                                         <Typography variant="body2" color="text.secondary" noWrap>
                                             {field.address.full}
@@ -636,9 +652,29 @@ const FieldList: React.FC<FieldListProps> = ({ initialFields = [] }) => {
                                     </Box>
 
                                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                        <CategoryIcon fontSize="small" sx={{ color: 'text.secondary', mr: 1 }} />
+                                        <GrassIcon
+                                            fontSize="small"
+                                            sx={{
+                                                color: getCropColor(field.cropType),
+                                                mr: 1
+                                            }}
+                                        />
                                         <Typography variant="body2" color="text.secondary" noWrap>
                                             {field.cropType}
+                                        </Typography>
+                                    </Box>
+
+                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                        <AccountBalanceIcon fontSize="small" sx={{ color: 'text.secondary', mr: 1 }} />
+                                        <Typography variant="body2" color="text.secondary" noWrap>
+                                            {field.paymentGroup || '결제소속 없음'}
+                                        </Typography>
+                                    </Box>
+
+                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                        <LocationCityIcon fontSize="small" sx={{ color: 'text.secondary', mr: 1 }} />
+                                        <Typography variant="body2" color="text.secondary" noWrap>
+                                            {field.subdistrict || '면단위 없음'}
                                         </Typography>
                                     </Box>
 

@@ -4,7 +4,7 @@
 import React from 'react';
 import { Container } from '@mui/material';
 import ScheduleDetail from '@/components/schedules/ScheduleDetail';
-
+import MainLayout from '@/components/layout/MainLayout';
 interface ScheduleDetailPageProps {
   params: {
     id: string;
@@ -13,8 +13,10 @@ interface ScheduleDetailPageProps {
 
 export default function ScheduleDetailPage({ params }: ScheduleDetailPageProps) {
   return (
-    <Container maxWidth="lg">
-      <ScheduleDetail scheduleId={params.id} />
-    </Container>
+    <MainLayout>
+      <Container maxWidth="lg">
+        <ScheduleDetail scheduleId={params.id} />
+      </Container>
+    </MainLayout>
   );
 }

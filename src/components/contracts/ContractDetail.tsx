@@ -33,6 +33,7 @@ import {
     Terrain as TerrainIcon,
     Payment as PaymentIcon,
     Info as InfoIcon,
+    AttachMoney as MoneyIcon,
 } from '@mui/icons-material';
 import { Contract } from '@/types';
 import { useContract } from '@/hooks/useContracts';
@@ -68,7 +69,7 @@ const ContractDetail: React.FC<ContractDetailProps> = ({ contractId }) => {
     const router = useRouter();
     const { confirm } = useConfirm();
     const { contract, isLoading, error, deleteContract } = useContract(contractId);
-    
+
     // Tab state
     const [tabValue, setTabValue] = useState(0);
 
@@ -162,8 +163,8 @@ const ContractDetail: React.FC<ContractDetailProps> = ({ contractId }) => {
             {/* 헤더 */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <IconButton 
-                        onClick={() => router.push(contract.farmerId ? `/farmers/${contract.farmerId}` : '/contracts')} 
+                    <IconButton
+                        onClick={() => router.push(contract.farmerId ? `/farmers/${contract.farmerId}` : '/contracts')}
                         sx={{ mr: 2 }}
                     >
                         <BackIcon />
@@ -173,14 +174,14 @@ const ContractDetail: React.FC<ContractDetailProps> = ({ contractId }) => {
                             계약 #{contract.contractNumber}
                         </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                            <Chip 
+                            <Chip
                                 size="small"
                                 label={getStatusLabel(contract.contractStatus)}
                                 color={getStatusColor(contract.contractStatus)}
                                 sx={{ mr: 1 }}
                             />
                             <Typography variant="body2" color="text.secondary">
-                                {contract.contractType || '일반'} | 
+                                {contract.contractType || '일반'} |
                                 {' ' + new Date(contract.contractDate).toLocaleDateString('ko-KR')}
                             </Typography>
                         </Box>
@@ -214,26 +215,26 @@ const ContractDetail: React.FC<ContractDetailProps> = ({ contractId }) => {
                     onChange={handleTabChange}
                     aria-label="contract detail tabs"
                 >
-                    <Tab 
-                        icon={<InfoIcon />} 
+                    <Tab
+                        icon={<InfoIcon />}
                         iconPosition="start"
-                        label="기본 정보" 
-                        id="contract-tab-0" 
-                        aria-controls="contract-tabpanel-0" 
+                        label="기본 정보"
+                        id="contract-tab-0"
+                        aria-controls="contract-tabpanel-0"
                     />
-                    <Tab 
-                        icon={<PaymentIcon />} 
+                    <Tab
+                        icon={<PaymentIcon />}
                         iconPosition="start"
-                        label="납부 일정" 
-                        id="contract-tab-1" 
-                        aria-controls="contract-tabpanel-1" 
+                        label="납부 일정"
+                        id="contract-tab-1"
+                        aria-controls="contract-tabpanel-1"
                     />
-                    <Tab 
-                        icon={<DescriptionIcon />} 
+                    <Tab
+                        icon={<DescriptionIcon />}
                         iconPosition="start"
-                        label="세부 정보" 
-                        id="contract-tab-2" 
-                        aria-controls="contract-tabpanel-2" 
+                        label="세부 정보"
+                        id="contract-tab-2"
+                        aria-controls="contract-tabpanel-2"
                     />
                 </Tabs>
             </Box>
@@ -241,7 +242,7 @@ const ContractDetail: React.FC<ContractDetailProps> = ({ contractId }) => {
             {/* 기본 정보 탭 */}
             <TabPanel value={tabValue} index={0}>
                 <Grid container spacing={3}>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <Card variant="outlined">
                             <CardContent>
                                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -249,18 +250,18 @@ const ContractDetail: React.FC<ContractDetailProps> = ({ contractId }) => {
                                     <Typography variant="h6">농가 정보</Typography>
                                 </Box>
                                 <Divider sx={{ mb: 2 }} />
-                                
+
                                 <Grid container spacing={2}>
-                                    <Grid item xs={4}>
+                                    <Grid size={{ xs: 4 }}>
                                         <Typography variant="body2" color="text.secondary">농가명</Typography>
                                     </Grid>
-                                    <Grid item xs={8}>
+                                    <Grid size={{ xs: 8 }}>
                                         <Typography variant="body1">{contract.farmerName || '정보 없음'}</Typography>
                                     </Grid>
-                                    
-                                    <Grid item xs={12}>
-                                        <Button 
-                                            variant="text" 
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <Button
+                                            variant="text"
                                             size="small"
                                             onClick={() => router.push(`/farmers/${contract.farmerId}`)}
                                         >
@@ -272,7 +273,7 @@ const ContractDetail: React.FC<ContractDetailProps> = ({ contractId }) => {
                         </Card>
                     </Grid>
 
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <Card variant="outlined">
                             <CardContent>
                                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -280,18 +281,18 @@ const ContractDetail: React.FC<ContractDetailProps> = ({ contractId }) => {
                                     <Typography variant="h6">농지 정보</Typography>
                                 </Box>
                                 <Divider sx={{ mb: 2 }} />
-                                
+
                                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                                     계약 대상 농지
                                 </Typography>
-                                
+
                                 {contract.fieldNames && contract.fieldNames.length > 0 ? (
                                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                                         {contract.fieldNames.map((name, index) => (
-                                            <Chip 
-                                                key={index} 
-                                                label={name} 
-                                                size="small" 
+                                            <Chip
+                                                key={index}
+                                                label={name}
+                                                size="small"
                                                 onClick={() => router.push(`/fields/${contract.fieldIds[index]}`)}
                                             />
                                         ))}
@@ -303,7 +304,7 @@ const ContractDetail: React.FC<ContractDetailProps> = ({ contractId }) => {
                         </Card>
                     </Grid>
 
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                         <Card variant="outlined">
                             <CardContent>
                                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -311,47 +312,47 @@ const ContractDetail: React.FC<ContractDetailProps> = ({ contractId }) => {
                                     <Typography variant="h6">계약 개요</Typography>
                                 </Box>
                                 <Divider sx={{ mb: 2 }} />
-                                
+
                                 <Grid container spacing={2}>
-                                    <Grid item xs={12} sm={6} md={3}>
+                                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                         <Typography variant="body2" color="text.secondary">계약 번호</Typography>
                                         <Typography variant="body1">{contract.contractNumber}</Typography>
                                     </Grid>
-                                    
-                                    <Grid item xs={12} sm={6} md={3}>
+
+                                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                         <Typography variant="body2" color="text.secondary">계약일</Typography>
                                         <Typography variant="body1">
                                             {new Date(contract.contractDate).toLocaleDateString('ko-KR')}
                                         </Typography>
                                     </Grid>
-                                    
-                                    <Grid item xs={12} sm={6} md={3}>
+
+                                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                         <Typography variant="body2" color="text.secondary">계약 유형</Typography>
                                         <Typography variant="body1">{contract.contractType || '일반'}</Typography>
                                     </Grid>
-                                    
-                                    <Grid item xs={12} sm={6} md={3}>
+
+                                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                         <Typography variant="body2" color="text.secondary">계약 상태</Typography>
-                                        <Chip 
+                                        <Chip
                                             size="small"
                                             label={getStatusLabel(contract.contractStatus)}
                                             color={getStatusColor(contract.contractStatus)}
                                         />
                                     </Grid>
-                                    
-                                    <Grid item xs={12}>
+
+                                    <Grid size={{ xs: 12 }}>
                                         <Divider sx={{ my: 1 }} />
                                     </Grid>
-                                    
-                                    <Grid item xs={12}>
+
+                                    <Grid size={{ xs: 12 }}>
                                         <Typography variant="body2" color="text.secondary">계약 총액</Typography>
                                         <Typography variant="h6" color="primary.main" fontWeight="bold">
                                             {contract.totalAmount?.toLocaleString() || 0}원
                                         </Typography>
                                     </Grid>
-                                    
+
                                     {contract.memo && (
-                                        <Grid item xs={12}>
+                                        <Grid size={{ xs: 12 }}>
                                             <Typography variant="body2" color="text.secondary">메모</Typography>
                                             <Typography variant="body2">{contract.memo}</Typography>
                                         </Grid>
@@ -360,307 +361,20 @@ const ContractDetail: React.FC<ContractDetailProps> = ({ contractId }) => {
                             </CardContent>
                         </Card>
                     </Grid>
-                </Grid>
-            </TabPanel>
-
-            {/* 납부 일정 탭 */}
-            <TabPanel value={tabValue} index={1}>
-                <Grid container spacing={3}>
-                    {/* 계약금 */}
-                    <Grid item xs={12}>
-                        <Card variant="outlined">
-                            <CardContent>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                                    <Typography variant="h6">계약금</Typography>
-                                    <Chip 
-                                        size="small"
-                                        label={
-                                            contract.downPayment?.status === 'paid' ? '납부 완료' :
-                                            contract.downPayment?.status === 'scheduled' ? '납부 예정' : '미납'
-                                        }
-                                        color={
-                                            contract.downPayment?.status === 'paid' ? 'success' :
-                                            contract.downPayment?.status === 'scheduled' ? 'info' : 'warning'
-                                        }
-                                    />
-                                </Box>
-                                <Divider sx={{ mb: 2 }} />
-                                
-                                <Grid container spacing={2}>
-                                    <Grid item xs={12} sm={6} md={4}>
-                                        <Typography variant="body2" color="text.secondary">단가</Typography>
-                                        <Typography variant="body1">
-                                            {contract.contractDetails?.pricePerUnit?.toLocaleString() || 0}원/{contract.contractDetails?.unitType || 'kg'}
-                                        </Typography>
-                                    </Grid>
-                                    
-                                    <Grid item xs={12} sm={6} md={4}>
-                                        <Typography variant="body2" color="text.secondary">예상 금액</Typography>
-                                        <Typography variant="body1">
-                                            {((contract.contractDetails?.pricePerUnit || 0) * (contract.contractDetails?.estimatedQuantity || 0)).toLocaleString()}원
-                                        </Typography>
-                                    </Grid>
-                                </Grid>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-
-                    {/* 추가 계약 조건 */}
-                    <Grid item xs={12}>
-                        <Card variant="outlined">
-                            <CardContent>
-                                <Typography variant="h6" sx={{ mb: 2 }}>추가 계약 조건</Typography>
-                                <Divider sx={{ mb: 2 }} />
-                                
-                                <Grid container spacing={3}>
-                                    {contract.contractDetails?.specialTerms ? (
-                                        <Grid item xs={12}>
-                                            <Typography variant="body2" color="text.secondary">특별 계약 조건</Typography>
-                                            <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
-                                                {contract.contractDetails.specialTerms}
-                                            </Typography>
-                                        </Grid>
-                                    ) : (
-                                        <Grid item xs={12}>
-                                            <Typography variant="body2" color="text.secondary">
-                                                등록된 특별 계약 조건이 없습니다.
-                                            </Typography>
-                                        </Grid>
-                                    )}
-                                    
-                                    {contract.contractDetails?.qualityStandards && (
-                                        <Grid item xs={12}>
-                                            <Divider sx={{ my: 2 }} />
-                                            <Typography variant="body2" color="text.secondary">품질 기준</Typography>
-                                            <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
-                                                {contract.contractDetails.qualityStandards}
-                                            </Typography>
-                                        </Grid>
-                                    )}
-                                </Grid>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                </Grid>
-            </TabPanel>
-
-            {/* 삭제 확인 다이얼로그 */}
-            <Dialog
-                open={deleteDialogOpen}
-                onClose={handleDeleteCancel}
-                aria-labelledby="alert-dialog-title"
-                aria-describedby="alert-dialog-description"
-            >
-                <DialogTitle id="alert-dialog-title">
-                    계약 삭제 확인
-                </DialogTitle>
-                <DialogContent>
-                    <Typography>
-                        계약 #{contract.contractNumber}를 삭제하시겠습니까?
-                    </Typography>
-                    <Typography color="error" sx={{ mt: 1 }}>
-                        이 작업은 되돌릴 수 없으며, 모든 계약 데이터가 삭제됩니다.
-                    </Typography>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleDeleteCancel} disabled={isDeleting}>
-                        취소
-                    </Button>
-                    <Button 
-                        onClick={handleDeleteConfirm} 
-                        color="error" 
-                        disabled={isDeleting}
-                        startIcon={isDeleting ? <CircularProgress size={16} /> : null}
-                    >
-                        삭제
-                    </Button>
-                </DialogActions>
-            </Dialog>
-        </Paper>
-    );
-};
-
-export default ContractDetail;
-                                        <Typography variant="body2" color="text.secondary">금액</Typography>
-                                        <Typography variant="body1" fontWeight="bold">
-                                            {contract.downPayment?.amount?.toLocaleString() || 0}원
-                                        </Typography>
-                                    </Grid>
-                                    
-                                    <Grid item xs={12} sm={6} md={4}>
-                                        <Typography variant="body2" color="text.secondary">납부 예정일</Typography>
-                                        <Typography variant="body1">
-                                            {contract.downPayment?.dueDate ? 
-                                                new Date(contract.downPayment.dueDate).toLocaleDateString('ko-KR') : 
-                                                '정보 없음'
-                                            }
-                                        </Typography>
-                                    </Grid>
-                                    
-                                    {contract.downPayment?.paidDate && (
-                                        <Grid item xs={12} sm={6} md={4}>
-                                            <Typography variant="body2" color="text.secondary">실제 납부일</Typography>
-                                            <Typography variant="body1">
-                                                {new Date(contract.downPayment.paidDate).toLocaleDateString('ko-KR')}
-                                            </Typography>
-                                        </Grid>
-                                    )}
-                                    
-                                    {contract.downPayment?.paidAmount && (
-                                        <Grid item xs={12} sm={6} md={4}>
-                                            <Typography variant="body2" color="text.secondary">실제 납부액</Typography>
-                                            <Typography variant="body1">
-                                                {contract.downPayment.paidAmount.toLocaleString()}원
-                                            </Typography>
-                                        </Grid>
-                                    )}
-                                </Grid>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-
-                    {/* 중도금 */}
-                    <Grid item xs={12}>
-                        <Typography variant="h6" sx={{ mb: 2 }}>중도금</Typography>
-                        
-                        {contract.intermediatePayments && contract.intermediatePayments.length > 0 ? (
-                            contract.intermediatePayments.map((payment, index) => (
-                                <Card key={index} variant="outlined" sx={{ mb: 2 }}>
-                                    <CardContent>
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                                            <Typography variant="subtitle1">{payment.installmentNumber}회차</Typography>
-                                            <Chip 
-                                                size="small"
-                                                label={
-                                                    payment.status === 'paid' ? '납부 완료' :
-                                                    payment.status === 'scheduled' ? '납부 예정' : '미납'
-                                                }
-                                                color={
-                                                    payment.status === 'paid' ? 'success' :
-                                                    payment.status === 'scheduled' ? 'info' : 'warning'
-                                                }
-                                            />
-                                        </Box>
-                                        
-                                        <Grid container spacing={2}>
-                                            <Grid item xs={12} sm={6} md={4}>
-                                                <Typography variant="body2" color="text.secondary">금액</Typography>
-                                                <Typography variant="body1" fontWeight="bold">
-                                                    {payment.amount?.toLocaleString() || 0}원
-                                                </Typography>
-                                            </Grid>
-                                            
-                                            <Grid item xs={12} sm={6} md={4}>
-                                                <Typography variant="body2" color="text.secondary">납부 예정일</Typography>
-                                                <Typography variant="body1">
-                                                    {payment.dueDate ? 
-                                                        new Date(payment.dueDate).toLocaleDateString('ko-KR') : 
-                                                        '정보 없음'
-                                                    }
-                                                </Typography>
-                                            </Grid>
-                                            
-                                            {payment.paidDate && (
-                                                <Grid item xs={12} sm={6} md={4}>
-                                                    <Typography variant="body2" color="text.secondary">실제 납부일</Typography>
-                                                    <Typography variant="body1">
-                                                        {new Date(payment.paidDate).toLocaleDateString('ko-KR')}
-                                                    </Typography>
-                                                </Grid>
-                                            )}
-                                            
-                                            {payment.paidAmount && (
-                                                <Grid item xs={12} sm={6} md={4}>
-                                                    <Typography variant="body2" color="text.secondary">실제 납부액</Typography>
-                                                    <Typography variant="body1">
-                                                        {payment.paidAmount.toLocaleString()}원
-                                                    </Typography>
-                                                </Grid>
-                                            )}
-                                        </Grid>
-                                    </CardContent>
-                                </Card>
-                            ))
-                        ) : (
-                            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
-                                등록된 중도금 정보가 없습니다.
-                            </Typography>
-                        )}
-                    </Grid>
-
-                    {/* 잔금 */}
-                    <Grid item xs={12}>
-                        <Card variant="outlined">
-                            <CardContent>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                                    <Typography variant="h6">잔금</Typography>
-                                    <Chip 
-                                        size="small"
-                                        label={
-                                            contract.finalPayment?.status === 'paid' ? '납부 완료' :
-                                            contract.finalPayment?.status === 'scheduled' ? '납부 예정' : '미납'
-                                        }
-                                        color={
-                                            contract.finalPayment?.status === 'paid' ? 'success' :
-                                            contract.finalPayment?.status === 'scheduled' ? 'info' : 'warning'
-                                        }
-                                    />
-                                </Box>
-                                <Divider sx={{ mb: 2 }} />
-                                
-                                <Grid container spacing={2}>
-                                    <Grid item xs={12} sm={6} md={4}>
-                                        <Typography variant="body2" color="text.secondary">금액</Typography>
-                                        <Typography variant="body1" fontWeight="bold">
-                                            {contract.finalPayment?.amount?.toLocaleString() || 0}원
-                                        </Typography>
-                                    </Grid>
-                                    
-                                    <Grid item xs={12} sm={6} md={4}>
-                                        <Typography variant="body2" color="text.secondary">납부 예정일</Typography>
-                                        <Typography variant="body1">
-                                            {contract.finalPayment?.dueDate ? 
-                                                new Date(contract.finalPayment.dueDate).toLocaleDateString('ko-KR') : 
-                                                '정보 없음'
-                                            }
-                                        </Typography>
-                                    </Grid>
-                                    
-                                    {contract.finalPayment?.paidDate && (
-                                        <Grid item xs={12} sm={6} md={4}>
-                                            <Typography variant="body2" color="text.secondary">실제 납부일</Typography>
-                                            <Typography variant="body1">
-                                                {new Date(contract.finalPayment.paidDate).toLocaleDateString('ko-KR')}
-                                            </Typography>
-                                        </Grid>
-                                    )}
-                                    
-                                    {contract.finalPayment?.paidAmount && (
-                                        <Grid item xs={12} sm={6} md={4}>
-                                            <Typography variant="body2" color="text.secondary">실제 납부액</Typography>
-                                            <Typography variant="body1">
-                                                {contract.finalPayment.paidAmount.toLocaleString()}원
-                                            </Typography>
-                                        </Grid>
-                                    )}
-                                </Grid>
-                            </CardContent>
-                        </Card>
-                    </Grid>
 
                     {/* 납부 총액 요약 */}
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                         <Card variant="outlined" sx={{ bgcolor: 'primary.50' }}>
                             <CardContent>
                                 <Grid container spacing={2}>
-                                    <Grid item xs={12} md={4}>
+                                    <Grid size={{ xs: 12, md: 4 }}>
                                         <Typography variant="body2" color="text.secondary">계약 총액</Typography>
                                         <Typography variant="h6" fontWeight="bold">
                                             {contract.totalAmount?.toLocaleString() || 0}원
                                         </Typography>
                                     </Grid>
-                                    
-                                    <Grid item xs={12} md={4}>
+
+                                    <Grid size={{ xs: 12, md: 4 }}>
                                         <Typography variant="body2" color="text.secondary">납부 완료액</Typography>
                                         <Typography variant="h6" fontWeight="bold" color={
                                             contract.contractStatus === 'completed' ? 'success.main' : 'text.primary'
@@ -673,8 +387,8 @@ export default ContractDetail;
                                             ).toLocaleString()}원
                                         </Typography>
                                     </Grid>
-                                    
-                                    <Grid item xs={12} md={4}>
+
+                                    <Grid size={{ xs: 12, md: 4 }}>
                                         <Typography variant="body2" color="text.secondary">미납액</Typography>
                                         <Typography variant="h6" fontWeight="bold" color={
                                             contract.contractStatus === 'completed' ? 'text.primary' : 'warning.main'
@@ -696,11 +410,207 @@ export default ContractDetail;
                 </Grid>
             </TabPanel>
 
-            {/* 세부 정보 탭 */}
+            {/* 납부 일정 탭 */}
+            <TabPanel value={tabValue} index={1}>
+                <Grid container spacing={3}>
+                    {/* 계약금 */}
+                    <Grid size={{ xs: 12 }}>
+                        <Card variant="outlined">
+                            <CardContent>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                    <Typography variant="h6">계약금</Typography>
+                                    <Chip
+                                        size="small"
+                                        label={
+                                            contract.downPayment?.status === 'paid' ? '납부 완료' :
+                                                contract.downPayment?.status === 'scheduled' ? '납부 예정' : '미납'
+                                        }
+                                        color={
+                                            contract.downPayment?.status === 'paid' ? 'success' :
+                                                contract.downPayment?.status === 'scheduled' ? 'info' : 'warning'
+                                        }
+                                    />
+                                </Box>
+                                <Divider sx={{ mb: 2 }} />
+
+                                <Grid container spacing={2}>
+                                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                                        <Typography variant="body2" color="text.secondary">금액</Typography>
+                                        <Typography variant="body1" fontWeight="bold">
+                                            {contract.downPayment?.amount?.toLocaleString() || 0}원
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                                        <Typography variant="body2" color="text.secondary">납부 예정일</Typography>
+                                        <Typography variant="body1">
+                                            {contract.downPayment?.dueDate ?
+                                                new Date(contract.downPayment.dueDate).toLocaleDateString('ko-KR') :
+                                                '정보 없음'
+                                            }
+                                        </Typography>
+                                    </Grid>
+
+                                    {contract.downPayment?.paidDate && (
+                                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                                            <Typography variant="body2" color="text.secondary">실제 납부일</Typography>
+                                            <Typography variant="body1">
+                                                {new Date(contract.downPayment.paidDate).toLocaleDateString('ko-KR')}
+                                            </Typography>
+                                        </Grid>
+                                    )}
+
+                                    {contract.downPayment?.paidAmount && (
+                                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                                            <Typography variant="body2" color="text.secondary">실제 납부액</Typography>
+                                            <Typography variant="body1">
+                                                {contract.downPayment.paidAmount.toLocaleString()}원
+                                            </Typography>
+                                        </Grid>
+                                    )}
+                                </Grid>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+
+                    {/* 중도금 */}
+                    <Grid size={{ xs: 12 }}>
+                        <Typography variant="h6" sx={{ mb: 2 }}>중도금</Typography>
+
+                        {contract.intermediatePayments && contract.intermediatePayments.length > 0 ? (
+                            contract.intermediatePayments.map((payment, index) => (
+                                <Card key={index} variant="outlined" sx={{ mb: 2 }}>
+                                    <CardContent>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                            <Typography variant="subtitle1">{payment.installmentNumber}회차</Typography>
+                                            <Chip
+                                                size="small"
+                                                label={
+                                                    payment.status === 'paid' ? '납부 완료' :
+                                                        payment.status === 'scheduled' ? '납부 예정' : '미납'
+                                                }
+                                                color={
+                                                    payment.status === 'paid' ? 'success' :
+                                                        payment.status === 'scheduled' ? 'info' : 'warning'
+                                                }
+                                            />
+                                        </Box>
+
+                                        <Grid container spacing={2}>
+                                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                                                <Typography variant="body2" color="text.secondary">금액</Typography>
+                                                <Typography variant="body1" fontWeight="bold">
+                                                    {payment.amount?.toLocaleString() || 0}원
+                                                </Typography>
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                                                <Typography variant="body2" color="text.secondary">납부 예정일</Typography>
+                                                <Typography variant="body1">
+                                                    {payment.dueDate ?
+                                                        new Date(payment.dueDate).toLocaleDateString('ko-KR') :
+                                                        '정보 없음'
+                                                    }
+                                                </Typography>
+                                            </Grid>
+
+                                            {payment.paidDate && (
+                                                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                                                    <Typography variant="body2" color="text.secondary">실제 납부일</Typography>
+                                                    <Typography variant="body1">
+                                                        {new Date(payment.paidDate).toLocaleDateString('ko-KR')}
+                                                    </Typography>
+                                                </Grid>
+                                            )}
+
+                                            {payment.paidAmount && (
+                                                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                                                    <Typography variant="body2" color="text.secondary">실제 납부액</Typography>
+                                                    <Typography variant="body1">
+                                                        {payment.paidAmount.toLocaleString()}원
+                                                    </Typography>
+                                                </Grid>
+                                            )}
+                                        </Grid>
+                                    </CardContent>
+                                </Card>
+                            ))
+                        ) : (
+                            <Box sx={{ textAlign: 'center', py: 3, bgcolor: '#f9f9f9', borderRadius: 1 }}>
+                                <Typography color="text.secondary">
+                                    등록된 중도금 회차가 없습니다.
+                                </Typography>
+                            </Box>
+                        )}
+                    </Grid>
+
+                    {/* 잔금 */}
+                    <Grid size={{ xs: 12 }}>
+                        <Card variant="outlined">
+                            <CardContent>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                    <Typography variant="h6">잔금</Typography>
+                                    <Chip
+                                        size="small"
+                                        label={
+                                            contract.finalPayment?.status === 'paid' ? '납부 완료' :
+                                                contract.finalPayment?.status === 'scheduled' ? '납부 예정' : '미납'
+                                        }
+                                        color={
+                                            contract.finalPayment?.status === 'paid' ? 'success' :
+                                                contract.finalPayment?.status === 'scheduled' ? 'info' : 'warning'
+                                        }
+                                    />
+                                </Box>
+                                <Divider sx={{ mb: 2 }} />
+
+                                <Grid container spacing={2}>
+                                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                                        <Typography variant="body2" color="text.secondary">금액</Typography>
+                                        <Typography variant="body1" fontWeight="bold">
+                                            {contract.finalPayment?.amount?.toLocaleString() || 0}원
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                                        <Typography variant="body2" color="text.secondary">납부 예정일</Typography>
+                                        <Typography variant="body1">
+                                            {contract.finalPayment?.dueDate ?
+                                                new Date(contract.finalPayment.dueDate).toLocaleDateString('ko-KR') :
+                                                '정보 없음'
+                                            }
+                                        </Typography>
+                                    </Grid>
+
+                                    {contract.finalPayment?.paidDate && (
+                                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                                            <Typography variant="body2" color="text.secondary">실제 납부일</Typography>
+                                            <Typography variant="body1">
+                                                {new Date(contract.finalPayment.paidDate).toLocaleDateString('ko-KR')}
+                                            </Typography>
+                                        </Grid>
+                                    )}
+
+                                    {contract.finalPayment?.paidAmount && (
+                                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                                            <Typography variant="body2" color="text.secondary">실제 납부액</Typography>
+                                            <Typography variant="body1">
+                                                {contract.finalPayment.paidAmount.toLocaleString()}원
+                                            </Typography>
+                                        </Grid>
+                                    )}
+                                </Grid>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                </Grid>
+            </TabPanel>
+
+            {/* 계약 세부사항 탭 */}
             <TabPanel value={tabValue} index={2}>
                 <Grid container spacing={3}>
                     {/* 수확 기간 */}
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <Card variant="outlined">
                             <CardContent>
                                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -708,51 +618,129 @@ export default ContractDetail;
                                     <Typography variant="h6">수확 기간</Typography>
                                 </Box>
                                 <Divider sx={{ mb: 2 }} />
-                                
-                                {contract.contractDetails?.harvestPeriod ? (
-                                    <Grid container spacing={2}>
-                                        <Grid item xs={12} sm={6}>
-                                            <Typography variant="body2" color="text.secondary">시작일</Typography>
-                                            <Typography variant="body1">
-                                                {contract.contractDetails.harvestPeriod.start ?
-                                                    new Date(contract.contractDetails.harvestPeriod.start).toLocaleDateString('ko-KR') :
-                                                    '정보 없음'
-                                                }
-                                            </Typography>
-                                        </Grid>
-                                        
-                                        <Grid item xs={12} sm={6}>
-                                            <Typography variant="body2" color="text.secondary">종료일</Typography>
-                                            <Typography variant="body1">
-                                                {contract.contractDetails.harvestPeriod.end ?
-                                                    new Date(contract.contractDetails.harvestPeriod.end).toLocaleDateString('ko-KR') :
-                                                    '정보 없음'
-                                                }
-                                            </Typography>
-                                        </Grid>
+
+                                <Grid container spacing={2}>
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Typography variant="body2" color="text.secondary">시작일</Typography>
+                                        <Typography variant="body1">
+                                            {contract.contractDetails?.harvestPeriod?.start ?
+                                                new Date(contract.contractDetails.harvestPeriod.start).toLocaleDateString('ko-KR') :
+                                                '정보 없음'
+                                            }
+                                        </Typography>
                                     </Grid>
-                                ) : (
-                                    <Typography variant="body2" color="text.secondary">
-                                        수확 기간 정보가 없습니다.
-                                    </Typography>
-                                )}
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Typography variant="body2" color="text.secondary">종료일</Typography>
+                                        <Typography variant="body1">
+                                            {contract.contractDetails?.harvestPeriod?.end ?
+                                                new Date(contract.contractDetails.harvestPeriod.end).toLocaleDateString('ko-KR') :
+                                                '정보 없음'
+                                            }
+                                        </Typography>
+                                    </Grid>
+                                </Grid>
                             </CardContent>
                         </Card>
                     </Grid>
 
-                    {/* 예상 수확량 및 단가 */}
-                    <Grid item xs={12}>
+                    {/* 단가 정보 */}
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <Card variant="outlined">
                             <CardContent>
-                                <Typography variant="h6" sx={{ mb: 2 }}>예상 수확량 및 단가</Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                    <MoneyIcon sx={{ mr: 1, color: 'primary.main' }} />
+                                    <Typography variant="h6">단가 정보</Typography>
+                                </Box>
                                 <Divider sx={{ mb: 2 }} />
-                                
+
                                 <Grid container spacing={2}>
-                                    <Grid item xs={12} sm={6} md={4}>
-                                        <Typography variant="body2" color="text.secondary">예상 수확량</Typography>
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Typography variant="body2" color="text.secondary">단가</Typography>
                                         <Typography variant="body1">
-                                            {contract.contractDetails?.estimatedQuantity || 0} {contract.contractDetails?.unitType || 'kg'}
+                                            {contract.contractDetails?.pricePerUnit
+                                                ? `${contract.contractDetails.pricePerUnit.toLocaleString()}원`
+                                                : '정보 없음'}
                                         </Typography>
                                     </Grid>
-                                    
-                                    <Grid item xs={12} sm={6} md={4}></Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Typography variant="body2" color="text.secondary">단위</Typography>
+                                        <Typography variant="body1">
+                                            {contract.contractDetails?.unitType || '정보 없음'}
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="body2" color="text.secondary">예상 수확량</Typography>
+                                        <Typography variant="body1">
+                                            {contract.contractDetails?.estimatedQuantity
+                                                ? `${contract.contractDetails.estimatedQuantity.toLocaleString()} ${contract.contractDetails.unitType || 'kg'}`
+                                                : '정보 없음'}
+                                        </Typography>
+                                    </Grid>
+                                </Grid>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+
+                    {/* 특별 계약 조건 */}
+                    {contract.contractDetails?.specialTerms && (
+                        <Grid size={{ xs: 12 }}>
+                            <Card variant="outlined">
+                                <CardContent>
+                                    <Typography variant="h6" sx={{ mb: 2 }}>특별 계약 조건</Typography>
+                                    <Typography variant="body1">
+                                        {contract.contractDetails.specialTerms}
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                    )}
+
+                    {/* 품질 기준 */}
+                    {contract.contractDetails?.qualityStandards && (
+                        <Grid size={{ xs: 12 }}>
+                            <Card variant="outlined">
+                                <CardContent>
+                                    <Typography variant="h6" sx={{ mb: 2 }}>품질 기준</Typography>
+                                    <Typography variant="body1">
+                                        {contract.contractDetails.qualityStandards}
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                    )}
+                </Grid>
+            </TabPanel>
+
+            {/* 삭제 확인 다이얼로그 */}
+            <Dialog
+                open={deleteDialogOpen}
+                onClose={handleDeleteCancel}
+            >
+                <DialogTitle>계약 삭제</DialogTitle>
+                <DialogContent>
+                    <Typography>
+                        정말로 이 계약을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleDeleteCancel} disabled={isDeleting}>
+                        취소
+                    </Button>
+                    <Button
+                        onClick={handleDeleteConfirm}
+                        color="error"
+                        disabled={isDeleting}
+                        startIcon={isDeleting ? <CircularProgress size={20} /> : <DeleteIcon />}
+                    >
+                        삭제
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </Paper>
+    );
+};
+
+export default ContractDetail;

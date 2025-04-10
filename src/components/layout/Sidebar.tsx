@@ -37,7 +37,14 @@ import {
     DirectionsCar as CarsIcon,
     CalendarMonth,
     Map,
-    Add as AddIcon
+    Add as AddIcon,
+    List as ListIcon,
+    CalendarToday,
+    Article,
+    ReceiptLong,
+    Assignment,
+    AssignmentTurnedIn,
+    BarChart,
 } from '@mui/icons-material';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -187,6 +194,9 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                             selected={pathname === '/farmers'}
                             onClick={handleLinkClick}
                         >
+                            <ListItemIcon>
+                                <ListIcon fontSize="small" />
+                            </ListItemIcon>
                             <ListItemText primary="농가 목록" />
                         </ListItemButton>
                         <ListItemButton
@@ -239,6 +249,9 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                             selected={pathname === '/fields'}
                             onClick={handleLinkClick}
                         >
+                            <ListItemIcon>
+                                <ListIcon fontSize="small" />
+                            </ListItemIcon>
                             <ListItemText primary="농지 목록" />
                         </ListItemButton>
                         <ListItemButton
@@ -393,6 +406,9 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                             selected={pathname === '/schedules'}
                             onClick={handleLinkClick}
                         >
+                            <ListItemIcon>
+                                <ListIcon fontSize="small" />
+                            </ListItemIcon>
                             <ListItemText primary="일정 목록" />
                         </ListItemButton>
                         <ListItemButton
@@ -457,6 +473,9 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                             selected={pathname === '/contracts'}
                             onClick={handleLinkClick}
                         >
+                            <ListItemIcon>
+                                <ListIcon fontSize="small" />
+                            </ListItemIcon>
                             <ListItemText primary="계약 목록" />
                         </ListItemButton>
                         <ListItemButton
@@ -509,6 +528,9 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                             selected={pathname === '/payments'}
                             onClick={handleLinkClick}
                         >
+                            <ListItemIcon>
+                                <ListIcon fontSize="small" />
+                            </ListItemIcon>
                             <ListItemText primary="정산 목록" />
                         </ListItemButton>
                         <ListItemButton
@@ -530,6 +552,9 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                             selected={pathname === '/payments/reports'}
                             onClick={handleLinkClick}
                         >
+                            <ListItemIcon>
+                                <ReceiptLong fontSize="small" />
+                            </ListItemIcon>
                             <ListItemText primary="정산 보고서" />
                         </ListItemButton>
                     </List>

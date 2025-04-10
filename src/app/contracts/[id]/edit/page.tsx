@@ -1,11 +1,8 @@
 // src/app/contracts/[id]/edit/page.tsx
-'use client';
 
 import { Metadata } from 'next';
-import EditContractPage from '@/components/contracts/ContractForm';
-import { useContract } from '@/hooks/useContracts';
-import { CircularProgress, Box } from '@mui/material';
-
+import EditContractPageClient from '@/app/contracts/[id]/edit/client-page';
+import MainLayout from '@/components/layout/MainLayout';
 export const metadata: Metadata = {
   title: '계약 수정 | 팜매니지먼트',
   description: '계약 정보를 수정합니다.',
@@ -17,22 +14,10 @@ interface EditContractPageProps {
   };
 }
 
-export default function EditContractPageWrapper({ params }: EditContractPageProps) {
-  const { contract, isLoading, error } = useContract(params.id);
-
-  if (isLoading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error || !contract) {
-    return <div>Error loading contract</div>;
-  }
-
-  return <EditContractPage initialData={contract} />;
+export default function EditContractPage({ params }: EditContractPageProps) {
+  return (
+    <MainLayout>
+      <EditContractPageClient contractId={params.id} />
+    </MainLayout>
+  );
 }
-
-

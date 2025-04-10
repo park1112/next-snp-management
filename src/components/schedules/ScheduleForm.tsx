@@ -122,17 +122,17 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
     const [farmers, setFarmers] = useState<Farmer[]>([]);
     const [fields, setFields] = useState<Field[]>([]);
     const [workers, setWorkers] = useState<Worker[]>([]);
-    const [workerTypes] = useState<{value: string, label: string}[]>([
+    const [workerTypes] = useState<{ value: string, label: string }[]>([
         { value: 'foreman', label: '작업반장' },
         { value: 'driver', label: '운송기사' },
     ]);
-    const [scheduleTypes] = useState<{value: string, label: string}[]>([
+    const [scheduleTypes] = useState<{ value: string, label: string }[]>([
         { value: 'pulling', label: '뽑기' },
         { value: 'cutting', label: '자르기' },
         { value: 'packing', label: '포장' },
         { value: 'transport', label: '운송' },
     ]);
-    const [rateUnits] = useState<{value: string, label: string}[]>([
+    const [rateUnits] = useState<{ value: string, label: string }[]>([
         { value: '시간', label: '시간' },
         { value: '일', label: '일' },
         { value: '개수', label: '개수' },
@@ -223,7 +223,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                         const farmerFields = await getFieldsByFarmerId(farmer.id);
                         allFields.push(...farmerFields);
                     }
-                    
+
                     const field = allFields.find(f => f.id === fieldId);
                     if (field) {
                         setFormData(prev => ({
@@ -231,7 +231,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                             farmerId: field.farmerId,
                             fieldId
                         }));
-                        
+
                         // 이 농가의 농지들도 로드
                         const fieldsData = await getFieldsByFarmerId(field.farmerId);
                         setFields(fieldsData);
@@ -243,7 +243,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                     const worker = workersData.find(w => w.id === workerId);
                     if (worker) {
                         setWorkerTypeFilter(worker.type);
-                        
+
                         // 작업 유형도 작업자 타입에 맞게 조정
                         if (worker.type === 'driver') {
                             setFormData(prev => ({
@@ -279,7 +279,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
             const parts = name.split('.');
             if (parts.length === 2) {
                 const [parent, child] = parts;
-                
+
                 if (parent === 'rateInfo') {
                     setFormData({
                         ...formData,
@@ -320,7 +320,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                         destination: { address: '' },
                         cargo: { type: '', quantity: 0, unit: '개' }
                     };
-                    
+
                     // Update the nested property
                     if (middle === 'origin' || middle === 'destination') {
                         updatedTransportInfo[middle] = {
@@ -336,7 +336,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                         // Use type assertion to tell TypeScript this is a valid operation
                         (updatedTransportInfo as any)[middle] = value;
                     }
-                    
+
                     setFormData({
                         ...formData,
                         transportInfo: updatedTransportInfo
@@ -344,13 +344,13 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                 } else if (parent === 'additionalInfo') {
                     // Create a new object with the updated nested property
                     const updatedAdditionalInfo = formData.additionalInfo ? { ...formData.additionalInfo } : {};
-                    
+
                     // Update the nested property
                     (updatedAdditionalInfo as any)[middle] = {
                         ...(updatedAdditionalInfo as any)[middle],
                         [child]: value
                     };
-                    
+
                     setFormData({
                         ...formData,
                         additionalInfo: updatedAdditionalInfo
@@ -413,7 +413,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                     console.error('Error fetching fields:', error);
                 }
             };
-            
+
             fetchFields();
 
             // 농가 관련 오류 제거
@@ -482,7 +482,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
     // 날짜/시간 핸들러
     const handleDateChange = (date: Date | null, field: string) => {
         if (!date) return;
-        
+
         if (field === 'scheduledDate.start') {
             setFormData({
                 ...formData,
@@ -494,7 +494,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
         } else if (field === 'scheduledDate.end') {
             // Ensure we have a valid start date
             const startDate = formData.scheduledDate?.start || new Date();
-            
+
             setFormData({
                 ...formData,
                 scheduledDate: {
@@ -536,7 +536,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
             newErrors['scheduledDate.end'] = '작업 종료 일시는 필수 항목입니다.';
         }
 
-        if (formData.scheduledDate?.start && formData.scheduledDate?.end && 
+        if (formData.scheduledDate?.start && formData.scheduledDate?.end &&
             formData.scheduledDate.start > formData.scheduledDate.end) {
             newErrors['scheduledDate.end'] = '종료 일시는 시작 일시보다 이후여야 합니다.';
         }
@@ -549,15 +549,15 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
             if (!formData.transportInfo?.origin.address) {
                 newErrors['transportInfo.origin.address'] = '출발지 주소는 필수 항목입니다.';
             }
-            
+
             if (!formData.transportInfo?.destination.address) {
                 newErrors['transportInfo.destination.address'] = '도착지 주소는 필수 항목입니다.';
             }
-            
+
             if (!formData.transportInfo?.cargo.type) {
                 newErrors['transportInfo.cargo.type'] = '화물 종류는 필수 항목입니다.';
             }
-            
+
             if (!formData.transportInfo?.cargo.quantity) {
                 newErrors['transportInfo.cargo.quantity'] = '화물 수량은 필수 항목입니다.';
             }
@@ -571,6 +571,37 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
         setLoading(true);
 
         try {
+            // undefined 값을 null로 변환하거나 제거하는 함수
+            const sanitizeData = (data: any): any => {
+                const cleaned: any = {};
+
+                Object.keys(data).forEach(key => {
+                    if (data[key] === undefined) {
+                        // undefined 값은 제외
+                        return;
+                    }
+
+                    if (data[key] === null) {
+                        cleaned[key] = null;
+                        return;
+                    }
+
+                    if (typeof data[key] === 'object' && data[key] !== null) {
+                        // 객체인 경우 재귀적으로 처리
+                        cleaned[key] = sanitizeData(data[key]);
+
+                        // 빈 객체인 경우 제외
+                        if (Object.keys(cleaned[key]).length === 0) {
+                            delete cleaned[key];
+                        }
+                    } else {
+                        cleaned[key] = data[key];
+                    }
+                });
+
+                return cleaned;
+            };
+
             // 1. 상태 변경 이력에 현재 상태 추가
             const stageHistory = [...(formData.stage?.history || [])];
             if (!isEdit || stageHistory.length === 0) {
@@ -581,21 +612,31 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                 });
             }
 
+            // 기본 데이터 구성
             const scheduleData = {
                 ...formData,
                 stage: {
                     current: formData.stage?.current || '예정',
                     history: stageHistory
+                },
+                rateInfo: {
+                    baseRate: formData.rateInfo?.baseRate || 0,
+                    unit: formData.rateInfo?.unit || '시간',
+                    quantity: formData.rateInfo?.quantity || null,
+                    negotiatedRate: formData.rateInfo?.negotiatedRate || null
                 }
             };
 
+            // 데이터 정제
+            const cleanedData = sanitizeData(scheduleData);
+
             if (isEdit && initialData?.id) {
                 // 작업 일정 수정
-                await updateSchedule(initialData.id, scheduleData);
+                await updateSchedule(initialData.id, cleanedData);
                 setSuccessMessage('작업 일정이 성공적으로 수정되었습니다.');
             } else {
                 // 새 작업 일정 등록
-                await createSchedule(scheduleData as Required<Schedule>);
+                await createSchedule(cleanedData as Required<Schedule>);
                 setSuccessMessage('작업 일정이 성공적으로 등록되었습니다.');
             }
 
@@ -617,13 +658,13 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
 
     // 현재 선택된 농가 찾기
     const selectedFarmer = farmers.find(farmer => farmer.id === formData.farmerId);
-    
+
     // 현재 선택된 농지 찾기
     const selectedField = fields.find(field => field.id === formData.fieldId);
-    
+
     // 작업자 타입에 따라 필터링
     const filteredWorkers = workers.filter(worker => worker.type === workerTypeFilter);
-    
+
     // 현재 선택된 작업자 찾기
     const selectedWorker = workers.find(worker => worker.id === formData.workerId);
 
@@ -631,8 +672,8 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
         <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ko}>
             <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <IconButton 
-                        onClick={() => router.push('/schedules')} 
+                    <IconButton
+                        onClick={() => router.push('/schedules')}
                         sx={{ mr: 2 }}
                     >
                         <ArrowBackIcon />
@@ -909,7 +950,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                                                     }}
                                                 />
                                             </Grid>
-                                            
+
                                             <Grid size={{ xs: 12, md: 6 }}>
                                                 <FormControl fullWidth required>
                                                     <InputLabel>단위</InputLabel>
@@ -927,7 +968,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                                                     </Select>
                                                 </FormControl>
                                             </Grid>
-                                            
+
                                             {formData.type !== 'transport' && (
                                                 <Grid size={{ xs: 12, md: 6 }}>
                                                     <TextField
@@ -943,7 +984,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                                                     />
                                                 </Grid>
                                             )}
-                                            
+
                                             {formData.type !== 'transport' && (
                                                 <Grid size={{ xs: 12, md: 6 }}>
                                                     <TextField
@@ -968,7 +1009,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                                     </CardContent>
                                 </Card>
                             </Grid>
-                            
+
                             {/* 작업 상세 정보 */}
                             <Grid size={{ xs: 12, md: 6 }}>
                                 <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
@@ -1001,7 +1042,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                                                 </Grid>
                                             </Grid>
                                         )}
-                                        
+
                                         {formData.type === 'cutting' && (
                                             <Grid container spacing={2}>
                                                 <Grid size={{ xs: 12, md: 6 }}>
@@ -1024,7 +1065,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                                                 </Grid>
                                             </Grid>
                                         )}
-                                        
+
                                         {formData.type === 'packing' && (
                                             <Grid container spacing={2}>
                                                 <Grid size={{ xs: 12, md: 6 }}>
@@ -1090,7 +1131,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                                         </CardContent>
                                     </Card>
                                 </Grid>
-                                
+
                                 {/* 도착지 정보 */}
                                 <Grid size={{ xs: 12, md: 6 }}>
                                     <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
@@ -1119,7 +1160,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                                                         }}
                                                     />
                                                 </Grid>
-                                                
+
                                                 <Grid size={{ xs: 12, md: 6 }}>
                                                     <TextField
                                                         fullWidth
@@ -1129,7 +1170,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                                                         onChange={handleChange}
                                                     />
                                                 </Grid>
-                                                
+
                                                 <Grid size={{ xs: 12, md: 6 }}>
                                                     <TextField
                                                         fullWidth
@@ -1143,7 +1184,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                                         </CardContent>
                                     </Card>
                                 </Grid>
-                                
+
                                 {/* 화물 정보 */}
                                 <Grid size={{ xs: 12, md: 6 }}>
                                     <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
@@ -1165,7 +1206,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                                                         helperText={errors['transportInfo.cargo.type']}
                                                     />
                                                 </Grid>
-                                                
+
                                                 <Grid size={{ xs: 12, md: 6 }}>
                                                     <TextField
                                                         fullWidth
@@ -1179,7 +1220,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                                                         helperText={errors['transportInfo.cargo.quantity']}
                                                     />
                                                 </Grid>
-                                                
+
                                                 <Grid size={{ xs: 12, md: 6 }}>
                                                     <FormControl fullWidth>
                                                         <InputLabel>단위</InputLabel>
@@ -1197,7 +1238,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                                                         </Select>
                                                     </FormControl>
                                                 </Grid>
-                                                
+
                                                 <Grid size={{ xs: 12, md: 6 }}>
                                                     <TextField
                                                         fullWidth
@@ -1215,7 +1256,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                                         </CardContent>
                                     </Card>
                                 </Grid>
-                                
+
                                 {/* 운송 단가 정보 */}
                                 <Grid size={{ xs: 12, md: 6 }}>
                                     <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
@@ -1243,8 +1284,8 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                                                         }}
                                                     />
                                                 </Grid>
-                                                
-                                                    <Grid size={{ xs: 12, md: 6 }}>
+
+                                                <Grid size={{ xs: 12, md: 6 }}>
                                                     <TextField
                                                         fullWidth
                                                         type="number"

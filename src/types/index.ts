@@ -38,6 +38,9 @@ export interface Field {
     id: string;
     farmerId: string;     // 소속 농가 ID 참조
     farmerName?: string;  // UI 표시용 농가 이름
+    phoneNumber?: string; // 전화번호
+    paymentGroup?: string; // 결제소속
+    subdistrict?: string; // 면단위
     address: {
         full: string;
         detail?: string;
