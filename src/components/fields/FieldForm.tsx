@@ -29,7 +29,12 @@ import {
     Tabs,
     useTheme,
     InputAdornment,
-    SelectChangeEvent
+    SelectChangeEvent,
+    Card,
+    CardContent,
+    CardActions,
+    Tooltip,
+    Avatar
 } from '@mui/material';
 import {
     Terrain as TerrainIcon,
@@ -43,16 +48,30 @@ import {
     Search as SearchIcon,
     Map as MapIcon,
     Note as NoteIcon,
-    Person as PersonIcon
+    Person as PersonIcon,
+    Delete as DeleteIcon,
+    Flag as FlagIcon,
+    Calculate as CalculateIcon,
+    Phone as PhoneIcon,
+    Payment as PaymentIcon,
+    SwapHoriz as SwapHorizIcon,
+    ListAlt as ListAltIcon,
+    LocationOn as LocationOnIcon,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { ko } from 'date-fns/locale';
-import { Field, Farmer, DropdownOption } from '@/types';
+import { Field, Farmer, DropdownOption, PaymentGroup } from '@/types';
 import { createField, updateField, getCropTypes } from '@/services/firebase/fieldService';
-import { getFarmers } from '@/services/firebase/farmerService';
+import { createFarmer, getFarmers, searchFarmers } from '@/services/firebase/farmerService';
 import { useAppContext } from '@/contexts/AppContext';
+import { LocationItem } from '@/types';
+import { getLastFlagNumber, updateLastFlagNumber } from '@/services/firebase/firestoreService';
+import BasicInfo from '../form/BasicInfo';
+import { getFirestore, collection, getDocs } from 'firebase/firestore';
+
+
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -92,6 +111,40 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
     // Tab state
     const [tabValue, setTabValue] = useState(0);
 
+    // 여러 위치 정보를 저장할 배열
+    const [locations, setLocations] = useState<LocationItem[]>([]);
+
+    // 농가 검색
+    const [farmerSearchTerm, setFarmerSearchTerm] = useState('');
+    const [searchResults, setSearchResults] = useState<Farmer[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+
+    // 농가 추가 다이얼로그 상태
+    const [showAddFarmerDialog, setShowAddFarmerDialog] = useState<boolean>(false);
+    const [newFarmer, setNewFarmer] = useState<{
+        name: string;
+        phoneNumber: string;
+        paymentGroup: string;
+        address?: {
+            full: string;
+            detail: string;
+            zipcode: string;
+            subdistrict: string;
+        };
+    }>({
+        name: '',
+        phoneNumber: '',
+        paymentGroup: '',
+        address: {
+            full: '',
+            detail: '',
+            zipcode: '',
+            subdistrict: ''
+        }
+    });
+    const [isAddingFarmer, setIsAddingFarmer] = useState<boolean>(false);
+    const [farmerErrors, setFarmerErrors] = useState<{ [key: string]: string }>({});
+
     // Form state
     const [formData, setFormData] = useState<Partial<Field>>(initialData || {
         farmerId: farmerId || '',
@@ -99,21 +152,17 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
         phoneNumber: '',
         paymentGroup: '',
         subdistrict: '',
-        address: {
-            full: '',
-            detail: '',
-        },
-        area: {
-            value: 0,
-            unit: '평',
-        },
-        cropType: '',
         estimatedHarvestDate: undefined,
         currentStage: {
             stage: '계약예정',
             updatedAt: new Date(),
         },
         memo: '',
+        totalArea: {
+            value: 0,
+            unit: '평',
+        },
+        locations: [],
     });
 
     // Dropdown options
@@ -145,46 +194,129 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
     const [success, setSuccess] = useState<boolean>(false);
     const [successMessage, setSuccessMessage] = useState<string>('');
     const [showAddDialog, setShowAddDialog] = useState<boolean>(false);
-    const [dialogType, setDialogType] = useState<'cropType'>('cropType');
+    const [dialogType, setDialogType] = useState<'cropType' | 'paymentGroup' | 'subdistrict'>('cropType');
     const [newValue, setNewValue] = useState<string>('');
+
+    // 결제소속 목록 상태 추가
+    const [paymentGroups, setPaymentGroups] = useState<PaymentGroup[]>([]);
 
     // Tab change handler
     const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
         setTabValue(newValue);
     };
+    let globalLastFlagNumber = 0;
 
-    // Load farmers and crop types
+    // 초기 데이터 로딩
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
 
-                // Fetch farmers
-                const farmersData = await getFarmers();
-                setFarmers(farmersData);
+                // 마지막 깃발 번호 가져오기
+                const lastFlagNumber = await getLastFlagNumber();
+                globalLastFlagNumber = lastFlagNumber;
 
-                // If farmerId is provided, find farmer name
-                if (farmerId && !isEdit) {
-                    const farmer = farmersData.find(f => f.id === farmerId);
-                    if (farmer) {
-                        setFormData(prevData => ({
-                            ...prevData,
-                            farmerId: farmerId,
-                            farmerName: farmer.name,
-                            phoneNumber: farmer.phoneNumber,
-                            paymentGroup: farmer.paymentGroup,
-                            subdistrict: farmer.subdistrict,
-                        }));
+                // 결제소속 목록 가져오기
+                const db = getFirestore();
+                const paymentGroupsCol = collection(db, 'paymentGroups');
+                const querySnapshot = await getDocs(paymentGroupsCol);
+
+                const paymentGroupsData = querySnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        name: data.name || '이름 없음',
+                        createdBy: data.createdBy || '작성자 없음',
+                        createdAt: data.createdAt?.toDate() || new Date(),
+                    } as PaymentGroup;
+                });
+
+                setPaymentGroups(paymentGroupsData);
+
+                // 기존 데이터가 있는 경우 위치 정보 설정
+                if (isEdit && initialData) {
+                    // locations 배열이 이미 있으면 그대로 사용
+                    if (initialData.locations && Array.isArray(initialData.locations)) {
+                        const loadedLocations = initialData.locations as LocationItem[];
+                        setLocations(loadedLocations);
+
+                        // 최대 깃발 번호 확인하여 전역 변수 업데이트
+                        const maxFlag = Math.max(...loadedLocations.map(loc => loc.flagNumber), lastFlagNumber);
+                        globalLastFlagNumber = maxFlag;
+
+                        // Firebase에 최신 깃발 번호 업데이트
+                        if (maxFlag > lastFlagNumber) {
+                            await updateLastFlagNumber(maxFlag);
+                        }
+                    } else if (initialData.address) {
+                        // 기존 단일 주소 정보를 위치 배열로 변환
+                        const newLocation = {
+                            id: `location-${Date.now()}`,
+                            address: initialData.address as LocationItem['address'],
+                            flagNumber: lastFlagNumber + 1,
+                            area: initialData.area || { value: 0, unit: '평' },
+                            cropType: initialData.cropType || '',
+                        };
+                        setLocations([newLocation]);
+
+                        // Firebase에 깃발 번호 업데이트
+                        await updateLastFlagNumber(lastFlagNumber + 1);
+                        globalLastFlagNumber = lastFlagNumber + 1;
+                    }
+                } else {
+                    // 신규 등록 시 빈 위치 정보 한 개만 추가
+                    const nextFlagNumber = lastFlagNumber + 1;
+                    const newLocation = {
+                        id: `location-${Date.now()}`,
+                        address: {
+                            full: '',
+                            detail: '',
+                            zipcode: '',
+                            subdistrict: '',
+                        },
+                        flagNumber: nextFlagNumber,
+                        area: {
+                            value: 0,
+                            unit: formData.totalArea?.unit || '평',
+                        },
+                        cropType: '',
+                    };
+                    setLocations([newLocation]);
+
+                    // Firebase에 깃발 번호 업데이트
+                    await updateLastFlagNumber(nextFlagNumber);
+                    globalLastFlagNumber = nextFlagNumber;
+                }
+
+                // Fetch farmers if farmerId is not provided
+                if (!farmerId) {
+                    const farmersData = await getFarmers();
+                    setFarmers(farmersData);
+                } else {
+                    // If farmerId is provided, fetch specific farmer
+                    try {
+                        const farmerResponse = await getFarmers();
+                        const farmer = farmerResponse.find(f => f.id === farmerId);
+                        if (farmer) {
+                            setFormData(prevData => ({
+                                ...prevData,
+                                farmerId: farmerId,
+                                farmerName: farmer.name,
+                                phoneNumber: farmer.phoneNumber,
+                                paymentGroup: farmer.paymentGroup,
+                            }));
+                        }
+                    } catch (error) {
+                        console.error("Error fetching farmer:", error);
                     }
                 }
 
-                // Set crop type options from context
+                // Set crop type options from context or API
                 if (cropTypes.length > 0) {
                     setCropTypeOptions(
                         cropTypes.map(type => ({ value: type, label: type }))
                     );
                 } else {
-                    // Fallback to API call if context doesn't have crop types
                     const cropTypesData = await getCropTypes();
                     setCropTypeOptions(
                         cropTypesData.map(type => ({ value: type, label: type }))
@@ -198,88 +330,409 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
         };
 
         fetchData();
-    }, [farmerId, isEdit, cropTypes]);
+    }, [farmerId, isEdit, initialData, cropTypes]);
 
-    // 폼 입력 핸들러
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }> | SelectChangeEvent) => {
+    // 간단한 농가 추가 핸들러
+    // 간단한 농가 추가 핸들러
+    const handleAddNewFarmer = async () => {
+        // 유효성 검사
+        const newErrors: { [key: string]: string } = {};
+
+        if (!newFarmer.name.trim()) {
+            newErrors.name = '이름은 필수 항목입니다.';
+        }
+
+        if (!newFarmer.phoneNumber.trim()) {
+            newErrors.phoneNumber = '전화번호는 필수 항목입니다.';
+        } else if (!/^\d{3}-\d{3,4}-\d{4}$/.test(newFarmer.phoneNumber)) {
+            newErrors.phoneNumber = '올바른 전화번호 형식이 아닙니다. (예: 010-1234-5678)';
+        }
+
+        if (!newFarmer.paymentGroup.trim()) {
+            newErrors.paymentGroup = '결제소속은 필수 항목입니다.';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setFarmerErrors(newErrors);
+            return;
+        }
+
+        setIsAddingFarmer(true);
+
+        try {
+            // 농가 추가 함수 호출
+            const newFarmerData = {
+                name: newFarmer.name,
+                phoneNumber: newFarmer.phoneNumber,
+                paymentGroup: newFarmer.paymentGroup,
+                address: {
+                    full: newFarmer.address?.full || '',
+                    detail: newFarmer.address?.detail || '',
+                    zipcode: newFarmer.address?.zipcode || '',
+                    subdistrict: newFarmer.address?.subdistrict || '', // 면단위 추가
+                },
+                bankInfo: {
+                    bankName: '',
+                    accountNumber: '',
+                    accountHolder: '',
+                },
+                memo: '',
+            };
+
+            const farmerId = await createFarmer(newFarmerData);
+
+            // 새 농가 정보 설정 및 선택
+            const createdFarmer: Farmer = {
+                id: farmerId,
+                ...newFarmerData,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                createdBy: 'current-user', // 실제 인증된 사용자 ID로 대체
+            };
+
+            // 농가 목록 업데이트
+            setFarmers(prevFarmers => [...prevFarmers, createdFarmer]);
+
+            // 새 농가 선택
+            handleFarmerSelect(createdFarmer);
+
+            // 다이얼로그 닫기
+            setShowAddFarmerDialog(false);
+
+            // 성공 메시지
+            setSuccessMessage('새 농가가 성공적으로 추가되었습니다.');
+            setSuccess(true);
+
+        } catch (error) {
+            console.error("Error adding new farmer:", error);
+            setFarmerErrors({
+                submit: '농가 추가 중 오류가 발생했습니다. 다시 시도해주세요.'
+            });
+        } finally {
+            setIsAddingFarmer(false);
+        }
+    };
+
+    // 전화번호 포맷팅 함수
+    const formatPhoneNumber = (value: string): string => {
+        const phoneNumber = value.replace(/[^0-9]/g, '');
+        if (phoneNumber.length <= 11) {
+            let formattedValue = phoneNumber;
+            if (phoneNumber.length > 3 && phoneNumber.length <= 7) {
+                formattedValue = `${phoneNumber.slice(0, 3)}-${phoneNumber.slice(3)}`;
+            } else if (phoneNumber.length > 7) {
+                formattedValue = `${phoneNumber.slice(0, 3)}-${phoneNumber.slice(3, 7)}-${phoneNumber.slice(7)}`;
+            }
+            return formattedValue;
+        }
+        return value;
+    };
+
+    // 새 농가 입력 핸들러
+    const handleNewFarmerChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
         const { name, value } = e.target;
+
         if (!name) return;
 
-        // 중첩된 필드 처리 (address, area)
-        if (name.includes('.')) {
-            const [parent, child] = name.split('.');
+        if (name === 'phoneNumber') {
+            // 전화번호 포맷팅
+            const formattedValue = formatPhoneNumber(value as string);
+            setNewFarmer(prev => ({ ...prev, [name]: formattedValue }));
 
-            if (parent === 'area' && child === 'value') {
-                // 면적 값은 숫자로 변환
-                const numValue = parseFloat(value as string);
-                if (!isNaN(numValue) && numValue >= 0) {
-                    setFormData({
-                        ...formData,
-                        area: {
-                            ...formData.area!,
-                            value: numValue,
-                        },
-                    });
-                }
-                return;
-            }
-
-            const parentValue = formData[parent as keyof Field];
-            if (parentValue && typeof parentValue === 'object') {
-                setFormData({
-                    ...formData,
-                    [parent]: {
-                        ...parentValue,
-                        [child]: value,
-                    },
-                });
+            // 오류 제거
+            if (farmerErrors.phoneNumber && /^\d{3}-\d{3,4}-\d{4}$/.test(formattedValue)) {
+                setFarmerErrors(prev => ({ ...prev, phoneNumber: '' }));
             }
             return;
         }
 
-        // 일반 필드
-        setFormData({
-            ...formData,
-            [name]: value,
-        });
+        if (name.includes('.')) {
+            const [parent, child] = name.split('.');
+            if (parent === 'address') {
+                setNewFarmer(prev => ({
+                    ...prev,
+                    address: {
+                        ...(prev.address || { full: '', detail: '', zipcode: '', subdistrict: '' }),
+                        [child]: value
+                    }
+                }));
+            }
+            return;
+        }
 
-        // 필수 필드 오류 제거
-        if (errors[name] && value) {
-            setErrors({
-                ...errors,
-                [name]: '',
-            });
+        setNewFarmer(prev => ({ ...prev, [name]: value }));
+
+        // 오류 제거
+        if (farmerErrors[name] && (value as string).trim()) {
+            setFarmerErrors(prev => ({ ...prev, [name]: '' }));
+        }
+    };
+
+    // 3. 엔터키로 검색 지원
+    const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // 폼 제출 방지
+            handleFarmerSearch();
+        }
+    };
+
+    // 농가 검색 핸들러
+    const handleFarmerSearch = async () => {
+        if (!farmerSearchTerm.trim()) return;
+
+        try {
+            setIsSearching(true);
+            const results = await searchFarmers('name', farmerSearchTerm);
+            setSearchResults(results);
+        } catch (error) {
+            console.error("Error searching farmers:", error);
+        } finally {
+            setIsSearching(false);
         }
     };
 
     // 농가 선택 핸들러
-    const handleFarmerChange = (_event: any, newValue: Farmer | null) => {
-        if (newValue) {
-            setFormData({
-                ...formData,
-                farmerId: newValue.id,
-                farmerName: newValue.name,
-                phoneNumber: newValue.phoneNumber,
-                paymentGroup: newValue.paymentGroup,
-                subdistrict: newValue.subdistrict,
-            });
+    const handleFarmerSelect = (farmer: Farmer) => {
+        setFormData({
+            ...formData,
+            farmerId: farmer.id,
+            farmerName: farmer.name,
+            phoneNumber: farmer.phoneNumber,
+            paymentGroup: farmer.paymentGroup,
+        });
 
-            // 농가 관련 오류 제거
-            if (errors.farmerId) {
-                setErrors({
-                    ...errors,
-                    farmerId: '',
-                });
-            }
-        } else {
-            setFormData({
-                ...formData,
+        // 농가 관련 오류 제거
+        if (errors.farmerId) {
+            setErrors({
+                ...errors,
                 farmerId: '',
-                farmerName: '',
-                phoneNumber: '',
-                paymentGroup: '',
-                subdistrict: '',
             });
+        }
+    };
+
+    // 5. 새 위치 정보 추가 함수 수정 - Firebase 연동
+    const addNewLocation = async () => {
+        try {
+            // 현재 가장 큰 깃발 번호 찾기
+            const maxFlag = Math.max(...locations.map(loc => loc.flagNumber), globalLastFlagNumber);
+            const nextFlagNumber = maxFlag + 1;
+
+            const newLocation: LocationItem = {
+                id: `location-${Date.now()}-${locations.length}`,
+                address: {
+                    full: '',
+                    detail: '',
+                    zipcode: '',
+                    subdistrict: '',
+                },
+                flagNumber: nextFlagNumber,
+                area: {
+                    value: 0,
+                    unit: formData.totalArea?.unit || '평',
+                },
+                cropType: '',
+            };
+
+            setLocations([...locations, newLocation]);
+
+            // Firebase에 최신 깃발 번호 업데이트
+            await updateLastFlagNumber(nextFlagNumber);
+            globalLastFlagNumber = nextFlagNumber;
+        } catch (error) {
+            console.error("Error adding new location:", error);
+            // 에러 처리 (예: 알림 표시)
+        }
+    };
+
+    // 위치 정보 삭제
+    const removeLocation = (id: string) => {
+        if (locations.length <= 1) {
+            // 최소 하나의 위치는 유지
+            return;
+        }
+
+        const newLocations = locations.filter(loc => loc.id !== id);
+
+        // 삭제 후 깃발 번호 재정렬
+        const reorderedLocations = newLocations.map((loc, index) => ({
+            ...loc,
+            flagNumber: index + 1
+        }));
+
+        setLocations(reorderedLocations);
+
+        // 총 면적 재계산
+        calculateTotalArea(reorderedLocations);
+    };
+
+    // 위치 정보 업데이트
+    const updateLocation = (id: string, field: string, value: any) => {
+        const updatedLocations = locations.map(loc => {
+            if (loc.id === id) {
+                if (field.includes('.')) {
+                    const [parent, child] = field.split('.');
+
+                    if (parent === 'area' && child === 'value') {
+                        // 면적 값은 숫자로 변환
+                        const numValue = parseFloat(value);
+                        if (!isNaN(numValue) && numValue >= 0) {
+                            return {
+                                ...loc,
+                                area: {
+                                    ...loc.area,
+                                    value: numValue,
+                                }
+                            };
+                        }
+                        return loc;
+                    }
+
+                    if (parent === 'address') {
+                        return {
+                            ...loc,
+                            address: {
+                                ...loc.address,
+                                [child]: value
+                            }
+                        };
+                    }
+                }
+
+                return { ...loc, [field]: value };
+            }
+            return loc;
+        });
+
+        setLocations(updatedLocations);
+
+        // 면적이 업데이트된 경우 총 면적 재계산
+        if (field === 'area.value') {
+            calculateTotalArea(updatedLocations);
+        }
+    };
+
+    // 주소 정보 업데이트 (AddressInfo 컴포넌트로부터)
+    const handleAddressUpdate = (locationId: string, addressUpdate: any) => {
+        const updatedLocations = locations.map(loc => {
+            if (loc.id === locationId) {
+                return {
+                    ...loc,
+                    address: {
+                        ...loc.address,
+                        full: addressUpdate.full,
+                        zipcode: addressUpdate.zipcode,
+                        subdistrict: addressUpdate.subdistrict,
+                        coordinates: addressUpdate.coordinates
+                    }
+                };
+            }
+            return loc;
+        });
+
+        setLocations(updatedLocations);
+    };
+
+    // 총 면적 계산
+    const calculateTotalArea = (locs = locations) => {
+        // 같은 단위의 면적만 합산 (단순화를 위해 첫 번째 항목의 단위를 기준으로 함)
+        if (locs.length === 0) return;
+
+        const unit = locs[0].area.unit;
+        const totalValue = locs.reduce((sum, loc) => {
+            if (loc.area.unit === unit) {
+                return sum + (loc.area.value || 0);
+            }
+            return sum;
+        }, 0);
+
+        setFormData({
+            ...formData,
+            totalArea: {
+                value: totalValue,
+                unit: unit
+            }
+        });
+    };
+
+    // 폼 제출 핸들러
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        // 유효성 검사
+        const newErrors: { [key: string]: string } = {};
+
+        if (!formData.farmerId) {
+            newErrors.farmerId = '농가는 필수 항목입니다.';
+        }
+
+        // 모든 위치에 주소 정보가 있는지 확인
+        const hasEmptyAddress = locations.some(loc => !loc.address.full);
+        if (hasEmptyAddress) {
+            newErrors.locations = '모든 위치에 주소를 입력해주세요.';
+        }
+
+        // 모든 위치에 작물 정보가 있는지 확인
+        const hasEmptyCropType = locations.some(loc => !loc.cropType);
+        if (hasEmptyCropType) {
+            newErrors.cropTypes = '모든 위치에 작물 종류를 입력해주세요.';
+        }
+
+        // 면적 값 확인
+        const hasInvalidArea = locations.some(loc => !loc.area.value || loc.area.value <= 0);
+        if (hasInvalidArea) {
+            newErrors.areas = '모든 위치의 면적은 0보다 커야 합니다.';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            // 최종 데이터 구성
+            const finalFormData = {
+                ...formData,
+                locations: locations,
+            };
+
+            // 호환성을 위해 첫 번째 위치 정보를 기본 필드로도 설정
+            if (locations.length > 0) {
+                finalFormData.address = locations[0].address;
+                finalFormData.cropType = locations[0].cropType;
+                finalFormData.area = locations[0].area;
+            }
+
+            // undefined 값 처리
+            if (finalFormData.estimatedHarvestDate === undefined) {
+                delete finalFormData.estimatedHarvestDate;
+            }
+
+            if (isEdit && initialData?.id) {
+                // 농지 정보 수정
+                await updateField(initialData.id, finalFormData);
+                setSuccessMessage('농지 정보가 성공적으로 수정되었습니다.');
+            } else {
+                // 새 농지 등록
+                const id = await createField(finalFormData as Omit<Field, 'id' | 'createdAt' | 'updatedAt'>);
+                setSuccessMessage('농지가 성공적으로 등록되었습니다.');
+            }
+
+
+            setSuccess(true);
+
+            // 3초 후 목록 페이지로 이동
+            setTimeout(() => {
+                router.push(farmerId ? `/farmers/${farmerId}` : '/fields');
+            }, 3000);
+        } catch (error) {
+            console.error("Error saving field:", error);
+            setErrors({
+                submit: '저장 중 오류가 발생했습니다. 다시 시도해주세요.',
+            });
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -304,7 +757,7 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
     };
 
     // 다이얼로그 핸들러
-    const handleOpenDialog = (type: 'cropType') => {
+    const handleOpenDialog = (type: 'cropType' | 'paymentGroup' | 'subdistrict') => {
         setDialogType(type);
         setNewValue('');
         setShowAddDialog(true);
@@ -320,199 +773,33 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
         if (dialogType === 'cropType') {
             const newOption = { value: newValue, label: newValue };
             setCropTypeOptions([...cropTypeOptions, newOption]);
-            setFormData({
-                ...formData,
-                cropType: newValue,
-            });
         }
 
         setShowAddDialog(false);
     };
 
-    // 주소 검색 핸들러 - 카카오 주소 검색 API 연동
-    const handleAddressSearch = () => {
-        // 카카오 주소 검색 API 스크립트가 로드되어 있는지 확인
-        if (!window.daum || !window.daum.Postcode) {
-            // 스크립트 로드
-            const script = document.createElement('script');
-            script.src = "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
-            script.async = true;
-            script.onload = () => openAddressSearch();
-            document.head.appendChild(script);
-        } else {
-            openAddressSearch();
+    // 주소 검색 함수
+    const openAddressSearch = (locationId: string) => {
+        if (!(window as any).daum || !(window as any).daum.Postcode) {
+            console.error('Daum 우편번호 서비스가 로드되지 않았습니다.');
+            return;
         }
-    };
 
-    // 주소 검색 창 열기
-    const openAddressSearch = () => {
-        new window.daum.Postcode({
-            oncomplete: function (data: any) {
-                // 선택한 주소 정보
-                let fullAddress = data.address;
-                let extraAddress = '';
-
-                // 법정동명이 있을 경우 추가
-                if (data.bname !== '' && /[동|로|가]$/g.test(data.bname)) {
-                    extraAddress += data.bname;
-                }
-                // 건물명이 있고, 공동주택일 경우 추가
-                if (data.buildingName !== '' && data.apartment === 'Y') {
-                    extraAddress += (extraAddress !== '' ? ', ' + data.buildingName : data.buildingName);
-                }
-                // 표시할 참고항목이 있을 경우
-                if (extraAddress !== '') {
-                    fullAddress += ' (' + extraAddress + ')';
-                }
-
-                // 주소 정보 설정
-                setFormData({
-                    ...formData,
-                    address: {
-                        ...formData.address,
-                        full: fullAddress,
-                        zipcode: data.zonecode,
-                    } as Field['address']
-                });
-
-                // 주소-좌표 변환 요청 (카카오 맵 API 사용)
-                getCoordinatesFromAddress(fullAddress);
+        new (window as any).daum.Postcode({
+            oncomplete: (data: any) => {
+                const addressData = {
+                    full: data.address,
+                    zipcode: data.zonecode,
+                    subdistrict: data.buildingName || '',
+                    coordinates: {
+                        latitude: 0,
+                        longitude: 0
+                    }
+                };
+                handleAddressUpdate(locationId, addressData);
             }
         }).open();
     };
-
-    // 주소로 좌표 조회 (카카오 맵 API)
-    const getCoordinatesFromAddress = (address: string) => {
-        // 카카오 맵 API 스크립트가 로드되어 있는지 확인
-        if (!window.kakao || !window.kakao.maps) {
-            // API 키는 카카오 개발자 사이트에서 발급받아야 합니다
-            const KAKAO_API_KEY = process.env.NEXT_PUBLIC_KAKAO_MAPS_API_KEY || 'YOUR_KAKAO_API_KEY';
-            const script = document.createElement('script');
-            script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_API_KEY}&libraries=services&autoload=false`;
-            script.async = true;
-            script.onload = () => {
-                window.kakao.maps.load(() => {
-                    searchCoordinates(address);
-                });
-            };
-            document.head.appendChild(script);
-        } else {
-            searchCoordinates(address);
-        }
-    };
-
-    // 좌표 검색 실행
-    const searchCoordinates = (address: string) => {
-        if (!address || address.trim() === '') {
-            console.error('Empty address provided');
-            return;
-        }
-
-        const geocoder = new window.kakao.maps.services.Geocoder();
-
-        geocoder.addressSearch(address, (result: any, status: any) => {
-            if (status === window.kakao.maps.services.Status.OK && result.length > 0) {
-                const coordinates = {
-                    latitude: parseFloat(result[0].y),
-                    longitude: parseFloat(result[0].x)
-                };
-
-                console.log('Successfully converted address to coordinates:', coordinates);
-
-                // 좌표 정보 추가
-                setFormData(prevData => ({
-                    ...prevData,
-                    address: {
-                        ...prevData.address,
-                        coordinates
-                    } as Field['address']
-                }));
-
-                // 지도에 마커 표시 (지도 객체가 있다고 가정)
-                if (window.map) {
-                    const position = new window.kakao.maps.LatLng(coordinates.latitude, coordinates.longitude);
-                    const marker = new window.kakao.maps.Marker({ position });
-                    marker.setMap(window.map);
-                    window.map.setCenter(position);
-                }
-            } else {
-                console.error('Failed to get coordinates for address:', address, 'Status:', status);
-                // 에러 처리
-            }
-        });
-    };
-
-    // 폼 제출 핸들러
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        // 유효성 검사
-        const newErrors: { [key: string]: string } = {};
-
-        if (!formData.farmerId) {
-            newErrors.farmerId = '농가는 필수 항목입니다.';
-        }
-
-        if (!formData.address?.full) {
-            newErrors['address.full'] = '주소는 필수 항목입니다.';
-        }
-
-        if (!formData.area?.value || formData.area.value <= 0) {
-            newErrors['area.value'] = '면적은 0보다 커야 합니다.';
-        }
-
-        if (!formData.cropType) {
-            newErrors.cropType = '작물 종류는 필수 항목입니다.';
-        }
-
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
-            return;
-        }
-
-        setLoading(true);
-
-        try {
-            // undefined 값 처리 - undefined를 null로 변환하여 Firestore 오류 방지
-            const cleanedFormData = { ...formData };
-
-            // estimatedHarvestDate가 undefined인 경우 null로 변환 또는 필드 제거
-            if (cleanedFormData.estimatedHarvestDate === undefined) {
-                // 방법 1: null로 변환 (Firestore에서는 null 허용)
-                delete cleanedFormData.estimatedHarvestDate;
-
-                // 방법 2: 필드 제거 (아예 필드를 포함하지 않음)
-                // delete cleanedFormData.estimatedHarvestDate;
-            }
-
-            if (isEdit && initialData?.id) {
-                // 농지 정보 수정 - 정제된 데이터 사용
-                await updateField(initialData.id, cleanedFormData);
-                setSuccessMessage('농지 정보가 성공적으로 수정되었습니다.');
-            } else {
-                // 새 농지 등록 - 정제된 데이터 사용
-                const id = await createField(cleanedFormData as Omit<Field, 'id' | 'createdAt' | 'updatedAt'>);
-                setSuccessMessage('농지가 성공적으로 등록되었습니다.');
-            }
-
-            setSuccess(true);
-
-            // 3초 후 목록 페이지로 이동
-            setTimeout(() => {
-                router.push(farmerId ? `/farmers/${farmerId}` : '/fields');
-            }, 3000);
-        } catch (error) {
-            console.error("Error saving field:", error);
-            setErrors({
-                submit: '저장 중 오류가 발생했습니다. 다시 시도해주세요.',
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // 현재 선택된 농가 찾기
-    const selectedFarmer = farmers.find(farmer => farmer.id === formData.farmerId);
 
     return (
         <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
@@ -546,188 +833,523 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
             <Box component="form" onSubmit={handleSubmit} noValidate>
                 {/* 기본 정보 탭 */}
                 <TabPanel value={tabValue} index={0}>
-                    <Grid container spacing={3}>
-                        {/* 농가 선택 */}
-                        <Grid size={{ xs: 12 }} >
-                            <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                                <PersonIcon sx={{ mr: 1 }} />
-                                농가 정보
-                            </Typography>
 
-                            <Autocomplete
-                                id="farmer-select"
-                                options={farmers}
-                                getOptionLabel={(option) => option.name}
-                                value={selectedFarmer || null}
-                                onChange={handleFarmerChange}
-                                disabled={!!farmerId}
-                                isOptionEqualToValue={(option, value) => option.id === value.id}
-                                renderInput={(params) => (
-                                    <TextField
-                                        {...params}
-                                        label="농가 선택"
-                                        required
-                                        error={!!errors.farmerId}
-                                        helperText={errors.farmerId}
-                                        placeholder="농가를 선택하세요"
-                                    />
+                    {/* 농가 검색 및 선택 */}
+                    <Grid container spacing={2}>
+                        <Grid size={{ xs: 12 }}>
+                            <Paper
+                                elevation={0}
+                                sx={{
+                                    p: 3,
+                                    borderRadius: 2,
+                                    border: '1px solid #e0e0e0',
+                                    background: 'linear-gradient(to right, #f8f9fa, #ffffff)'
+                                }}
+                            >
+                                <Typography
+                                    variant="h6"
+                                    fontWeight="600"
+                                    sx={{
+                                        mb: 3,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        color: '#2e7d32'
+                                    }}
+                                >
+                                    <PersonIcon sx={{ mr: 1, color: '#2e7d32' }} />
+                                    농가 정보
+                                </Typography>
+
+                                {formData.farmerId ? (
+                                    <Box
+                                        sx={{
+                                            mb: 2,
+                                            p: 3,
+                                            borderRadius: 2,
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                                            border: '1px solid rgba(46, 125, 50, 0.2)',
+                                            transition: 'all 0.3s ease',
+                                            backgroundColor: 'rgba(46, 125, 50, 0.03)'
+                                        }}
+                                    >
+                                        <Grid container spacing={2}>
+                                            <Grid size={{ xs: 12, sm: 6 }} >
+                                                <Typography variant="body1" fontWeight="600" gutterBottom color="#2e7d32">
+                                                    {formData.farmerName}
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                                    <PhoneIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                                                    {formData.phoneNumber}
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center' }}>
+                                                    <PaymentIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                                                    결제 그룹: {formData.paymentGroup || '없음'}
+                                                </Typography>
+                                            </Grid>
+                                            {!farmerId && (
+                                                <Grid size={{ xs: 12, sm: 6 }} >
+                                                    <Button
+                                                        size="small"
+                                                        variant="outlined"
+                                                        color="primary"
+                                                        startIcon={<SwapHorizIcon />}
+                                                        onClick={() => setFormData({
+                                                            ...formData,
+                                                            farmerId: '',
+                                                            farmerName: '',
+                                                            phoneNumber: '',
+                                                            paymentGroup: '',
+                                                        })}
+                                                        sx={{ mt: { xs: 1, sm: 0 } }}
+                                                    >
+                                                        다른 농가 선택
+                                                    </Button>
+                                                </Grid>
+                                            )}
+                                        </Grid>
+                                    </Box>
+                                ) : (
+                                    <>
+                                        <Grid container spacing={2} alignItems="center">
+                                            <Grid size={{ xs: 12, md: 7 }} >
+                                                <TextField
+                                                    fullWidth
+                                                    label="농가 검색"
+                                                    value={farmerSearchTerm}
+                                                    onChange={(e) => setFarmerSearchTerm(e.target.value)}
+                                                    onKeyDown={handleSearchKeyDown}
+                                                    placeholder="농가 이름이나 전화번호로 검색"
+                                                    error={!!errors.farmerId}
+                                                    helperText={errors.farmerId}
+                                                    variant="outlined"
+                                                    sx={{
+                                                        '& .MuiOutlinedInput-root': {
+                                                            borderRadius: 2,
+                                                            backgroundColor: '#ffffff'
+                                                        }
+                                                    }}
+                                                    InputProps={{
+                                                        startAdornment: (
+                                                            <InputAdornment position="start">
+                                                                <SearchIcon color="action" />
+                                                            </InputAdornment>
+                                                        ),
+                                                    }}
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 6, md: 2.5 }} >
+                                                <Button
+                                                    fullWidth
+                                                    variant="contained"
+                                                    color="primary"
+                                                    onClick={handleFarmerSearch}
+                                                    disabled={isSearching}
+                                                    sx={{
+                                                        height: '56px',
+                                                        borderRadius: 2,
+                                                        boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+                                                        backgroundColor: '#1976d2',
+                                                        '&:hover': {
+                                                            backgroundColor: '#1565c0'
+                                                        }
+                                                    }}
+                                                >
+                                                    {isSearching ? <CircularProgress size={24} color="inherit" /> : '농가 검색'}
+                                                </Button>
+                                            </Grid>
+                                            <Grid size={{ xs: 6, md: 2.5 }} >
+                                                <Button
+                                                    fullWidth
+                                                    variant="contained"
+                                                    color="success"
+                                                    onClick={() => setShowAddFarmerDialog(true)}
+                                                    sx={{
+                                                        height: '56px',
+                                                        borderRadius: 2,
+                                                        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                                                    }}
+                                                    startIcon={<AddIcon />}
+                                                >
+                                                    농가 추가
+                                                </Button>
+                                            </Grid>
+                                        </Grid>
+
+                                        {/* 검색 결과 표시 - 모던한 카드 형태 */}
+                                        {searchResults.length > 0 && (
+                                            <Box sx={{ mt: 3, maxHeight: '400px', overflowY: 'auto', pr: 1 }}>
+                                                <Typography
+                                                    variant="subtitle2"
+                                                    sx={{ mb: 2, display: 'flex', alignItems: 'center' }}
+                                                >
+                                                    <ListAltIcon sx={{ mr: 1, fontSize: 18, color: 'text.secondary' }} />
+                                                    검색 결과 ({searchResults.length}건)
+                                                </Typography>
+
+                                                <Grid container spacing={2}>
+                                                    {searchResults.map((farmer) => (
+                                                        <Grid size={{ xs: 12, sm: 6, md: 4 }} key={farmer.id}>
+                                                            <Card
+                                                                sx={{
+                                                                    height: '100%',
+                                                                    display: 'flex',
+                                                                    flexDirection: 'column',
+                                                                    transition: 'all 0.2s ease',
+                                                                    '&:hover': {
+                                                                        transform: 'translateY(-3px)',
+                                                                        boxShadow: '0 6px 12px rgba(0,0,0,0.1)',
+                                                                        cursor: 'pointer',
+                                                                        borderColor: '#2e7d32'
+                                                                    },
+                                                                    border: '1px solid #e0e0e0',
+                                                                }}
+                                                                onClick={() => handleFarmerSelect(farmer)}
+                                                            >
+                                                                <CardContent sx={{ flexGrow: 1, p: 2.5 }}>
+                                                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                                                                        <Avatar
+                                                                            sx={{
+                                                                                bgcolor: 'primary.light',
+                                                                                width: 32,
+                                                                                height: 32,
+                                                                                mr: 1.5,
+                                                                                fontSize: '0.875rem'
+                                                                            }}
+                                                                        >
+                                                                            {farmer.name.charAt(0)}
+                                                                        </Avatar>
+                                                                        <Typography variant="body1" fontWeight="600">
+                                                                            {farmer.name}
+                                                                        </Typography>
+                                                                    </Box>
+
+                                                                    <Divider sx={{ mb: 2 }} />
+
+                                                                    <Box sx={{ pl: 1 }}>
+                                                                        <Typography
+                                                                            variant="body2"
+                                                                            sx={{
+                                                                                display: 'flex',
+                                                                                alignItems: 'center',
+                                                                                mb: 1,
+                                                                                color: 'text.secondary'
+                                                                            }}
+                                                                        >
+                                                                            <PhoneIcon sx={{ fontSize: 16, mr: 1 }} />
+                                                                            {farmer.phoneNumber}
+                                                                        </Typography>
+
+                                                                        {farmer.address?.full && (
+                                                                            <Typography
+                                                                                variant="body2"
+                                                                                sx={{
+                                                                                    display: 'flex',
+                                                                                    alignItems: 'flex-start',
+                                                                                    mb: 1,
+                                                                                    color: 'text.secondary'
+                                                                                }}
+                                                                            >
+                                                                                <LocationOnIcon sx={{ fontSize: 16, mr: 1, mt: '2px' }} />
+                                                                                <Box sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                                    {farmer.address.full} {farmer.address.detail || ''}
+                                                                                </Box>
+                                                                            </Typography>
+                                                                        )}
+
+                                                                        <Typography
+                                                                            variant="body2"
+                                                                            sx={{
+                                                                                display: 'flex',
+                                                                                alignItems: 'center',
+                                                                                color: 'text.secondary'
+                                                                            }}
+                                                                        >
+                                                                            <PaymentIcon sx={{ fontSize: 16, mr: 1 }} />
+                                                                            결제 그룹: {farmer.paymentGroup || '없음'}
+                                                                        </Typography>
+                                                                    </Box>
+                                                                </CardContent>
+                                                                <CardActions sx={{ p: 1.5, pt: 0, justifyContent: 'flex-end' }}>
+                                                                    <Button
+                                                                        size="small"
+                                                                        color="primary"
+                                                                        sx={{ textTransform: 'none' }}
+                                                                    >
+                                                                        선택하기
+                                                                    </Button>
+                                                                </CardActions>
+                                                            </Card>
+                                                        </Grid>
+                                                    ))}
+                                                </Grid>
+                                            </Box>
+                                        )}
+                                    </>
                                 )}
-                            />
+                            </Paper>
                         </Grid>
+                    </Grid>
 
-                        {/* 위치 정보 */}
-                        <Grid size={{ xs: 12 }} >
-                            <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2, mt: 1, display: 'flex', alignItems: 'center' }}>
-                                <HomeIcon sx={{ mr: 1 }} />
+                    {/* 위치 정보 섹션 */}
+                    <Grid size={{ xs: 12 }} >
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 1 }}>
+                            <Typography variant="subtitle1" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center' }}>
+                                <LocationIcon sx={{ mr: 1 }} />
                                 위치 정보
                             </Typography>
 
-                            <Grid container spacing={2}>
-                                <Grid size={{ xs: 12, sm: 9 }} >
-                                    <TextField
-                                        fullWidth
-                                        required
-                                        label="주소"
-                                        name="address.full"
-                                        value={formData.address?.full || ''}
-                                        onChange={handleChange}
-                                        error={!!errors['address.full']}
-                                        helperText={errors['address.full']}
-                                        InputProps={{
-                                            startAdornment: <LocationIcon sx={{ color: 'action.active', mr: 1 }} />,
-                                            readOnly: true,
-                                        }}
-                                    />
-                                </Grid>
-                                <Grid size={{ xs: 12, sm: 3 }} >
-                                    <Button
-                                        variant="outlined"
-                                        fullWidth
-                                        onClick={handleAddressSearch}
-                                        sx={{ height: '56px' }}
-                                    >
-                                        주소 검색
-                                    </Button>
-                                </Grid>
-                                <Grid size={{ xs: 12 }} >
-                                    <TextField
-                                        fullWidth
-                                        label="상세주소"
-                                        name="address.detail"
-                                        value={formData.address?.detail || ''}
-                                        onChange={handleChange}
-                                        placeholder="상세주소를 입력하세요"
-                                    />
-                                </Grid>
-                            </Grid>
-                        </Grid>
+                        </Box>
 
-                        {/* 면적 정보 */}
-                        <Grid size={{ xs: 12 }} >
-                            <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2, mt: 1, display: 'flex', alignItems: 'center' }}>
-                                <TerrainIcon sx={{ mr: 1 }} />
-                                면적 정보
+                        {errors.locations && (
+                            <Alert severity="error" sx={{ mb: 2 }}>
+                                {errors.locations}
+                            </Alert>
+                        )}
+
+                        {locations.map((location, index) => (
+                            <Card key={location.id} sx={{ mb: 3, position: 'relative' }}>
+                                <CardContent>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                        <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
+                                            <FlagIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
+                                            위치 #{location.flagNumber}
+                                        </Typography>
+                                        {locations.length > 1 && (
+                                            <Tooltip title="위치 삭제">
+                                                <IconButton
+                                                    size="small"
+                                                    color="error"
+                                                    onClick={() => removeLocation(location.id)}
+                                                >
+                                                    <DeleteIcon />
+                                                </IconButton>
+                                            </Tooltip>
+                                        )}
+                                    </Box>
+
+                                    <Grid container spacing={2}>
+                                        {/* 깃발 번호 */}
+                                        <Grid size={{ xs: 12, sm: 3 }} >
+                                            <TextField
+                                                fullWidth
+                                                label="깃발 번호"
+                                                type="number"
+                                                value={location.flagNumber}
+                                                onChange={(e) => updateLocation(location.id, 'flagNumber', parseInt(e.target.value) || 1)}
+                                                InputProps={{
+                                                    startAdornment: (
+                                                        <InputAdornment position="start">
+                                                            <FlagIcon sx={{ color: 'action.active' }} />
+                                                        </InputAdornment>
+                                                    ),
+                                                }}
+                                            />
+                                        </Grid>
+
+                                        {/* 주소 정보 */}
+                                        <Grid size={{ xs: 12, sm: 9 }} >
+                                            <TextField
+                                                fullWidth
+                                                required
+                                                label="주소"
+                                                value={location.address.full || ''}
+                                                onClick={() => {
+                                                    // 주소 검색 다이얼로그를 여기서 열 수 있습니다
+                                                    const mockData = {
+                                                        address: location.address
+                                                    };
+                                                    const mockOnChange = (e: any) => {
+                                                        const { name, value } = e.target;
+                                                        if (name === 'address.full') {
+                                                            updateLocation(location.id, 'address.full', value);
+                                                        } else if (name === 'address.detail') {
+                                                            updateLocation(location.id, 'address.detail', value);
+                                                        }
+                                                    };
+                                                    // 주소 검색 컴포넌트 호출
+                                                    const mockAddressUpdate = (addressData: any) => {
+                                                        handleAddressUpdate(location.id, addressData);
+                                                    };
+
+                                                    // AddressInfo 컴포넌트가 직접 호출되지 않고,
+                                                    // 여기서는 주소 검색 기능만 호출합니다
+                                                    if (!(window as any).daum || !(window as any).daum.Postcode) {
+                                                        const script = document.createElement('script');
+                                                        script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+                                                        script.async = true;
+                                                        script.onload = () => openAddressSearch(location.id);
+                                                        document.head.appendChild(script);
+                                                    } else {
+                                                        openAddressSearch(location.id);
+                                                    }
+                                                }}
+                                                InputProps={{
+                                                    startAdornment: <LocationIcon sx={{ color: 'action.active', mr: 1 }} />,
+                                                    readOnly: true,
+                                                }}
+                                            />
+                                        </Grid>
+
+                                        {/* 상세 주소 */}
+                                        <Grid size={{ xs: 12 }} >
+                                            <TextField
+                                                fullWidth
+                                                label="상세주소"
+                                                value={location.address.detail || ''}
+                                                onChange={(e) => updateLocation(location.id, 'address.detail', e.target.value)}
+                                                placeholder="상세주소를 입력하세요"
+                                                sx={{ mt: 2 }}
+                                            />
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12 }} >
+                                            <Divider sx={{ my: 2 }} />
+                                        </Grid>
+
+                                        {/* 면적 정보 */}
+                                        <Grid size={{ xs: 12, sm: 8 }} >
+                                            <TextField
+                                                fullWidth
+                                                required
+                                                type="number"
+                                                label="면적"
+                                                value={location.area.value || ''}
+                                                onChange={(e) => updateLocation(location.id, 'area.value', parseFloat(e.target.value) || 0)}
+                                                error={!location.area.value || location.area.value <= 0}
+                                                helperText={!location.area.value || location.area.value <= 0 ? '면적은 0보다 커야 합니다.' : ''}
+                                                InputProps={{
+                                                    startAdornment: (
+                                                        <InputAdornment position="start">
+                                                            <TerrainIcon sx={{ color: 'action.active' }} />
+                                                        </InputAdornment>
+                                                    ),
+                                                }}
+                                            />
+                                        </Grid>
+                                        <Grid size={{ xs: 12, sm: 4 }} >
+                                            <FormControl fullWidth>
+                                                <InputLabel>단위</InputLabel>
+                                                <Select
+                                                    value={location.area.unit || '평'}
+                                                    onChange={(e) => updateLocation(location.id, 'area.unit', e.target.value)}
+                                                    label="단위"
+                                                >
+                                                    {areaUnitOptions.map((option) => (
+                                                        <MenuItem key={option.value} value={option.value}>
+                                                            {option.label}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+
+                                        {/* 작물 정보 */}
+                                        <Grid size={{ xs: 12 }} >
+                                            <FormControl fullWidth required sx={{ mt: 2 }} error={!location.cropType}>
+                                                <InputLabel>작물 종류</InputLabel>
+                                                <Select
+                                                    value={location.cropType || ''}
+                                                    onChange={(e) => updateLocation(location.id, 'cropType', e.target.value)}
+                                                    label="작물 종류"
+                                                    endAdornment={
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleOpenDialog('cropType');
+                                                            }}
+                                                            sx={{ mr: 2 }}
+                                                        >
+                                                            <AddIcon />
+                                                        </IconButton>
+                                                    }
+                                                >
+                                                    {cropTypeOptions.map((option) => (
+                                                        <MenuItem key={option.value} value={option.value}>
+                                                            {option.label}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                                {!location.cropType && (
+                                                    <FormHelperText>작물 종류를 선택해주세요</FormHelperText>
+                                                )}
+                                            </FormControl>
+                                        </Grid>
+                                        <Grid size={{ xs: 12 }} >
+                                            <TextField
+                                                fullWidth
+                                                label="특이사항/메모"
+                                                value={location.note || ''}
+                                                onChange={(e) => updateLocation(location.id, 'note', e.target.value)}
+                                                placeholder="이 위치에 대한 특이사항이나 메모를 입력하세요"
+                                                multiline
+                                                rows={2}
+                                                sx={{ mt: 2 }}
+                                            />
+                                        </Grid>
+                                    </Grid>
+                                </CardContent>
+                            </Card>
+                        ))}
+
+                        {/* 총 면적 정보 */}
+                        <Box sx={{
+                            p: 2,
+                            mt: 2,
+                            border: `1px solid ${theme.palette.primary.main}`,
+                            borderRadius: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            backgroundColor: 'rgba(0, 150, 136, 0.05)'
+                        }}>
+                            <CalculateIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
+                            <Typography variant="h6" fontWeight="bold">
+                                총 면적: {(formData.totalArea?.value || 0).toLocaleString()} {formData.totalArea?.unit || '평'}
                             </Typography>
+                        </Box>
 
-                            <Grid container spacing={2}>
-                                <Grid size={{ xs: 12, sm: 8 }} >
-                                    <TextField
-                                        fullWidth
-                                        required
-                                        type="number"
-                                        label="면적"
-                                        name="area.value"
-                                        value={formData.area?.value || ''}
-                                        onChange={handleChange}
-                                        error={!!errors['area.value']}
-                                        helperText={errors['area.value']}
-                                        inputProps={{ min: 0 }}
-                                    />
-                                </Grid>
-                                <Grid size={{ xs: 12, sm: 4 }} >
-                                    <FormControl fullWidth>
-                                        <InputLabel>단위</InputLabel>
-                                        <Select
-                                            name="area.unit"
-                                            value={formData.area?.unit || '평'}
-                                            onChange={handleChange}
-                                            label="단위"
-                                        >
-                                            {areaUnitOptions.map((option) => (
-                                                <MenuItem key={option.value} value={option.value}>
-                                                    {option.label}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
-                            </Grid>
-                        </Grid>
-
-                        {/* 작물 종류 */}
-                        <Grid size={{ xs: 12 }} >
-                            <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2, mt: 1, display: 'flex', alignItems: 'center' }}>
-                                <CategoryIcon sx={{ mr: 1 }} />
-                                작물 정보
-                            </Typography>
-
-                            <FormControl fullWidth required error={!!errors.cropType}>
-                                <InputLabel>작물 종류</InputLabel>
-                                <Select
-                                    name="cropType"
-                                    value={formData.cropType || ''}
-                                    onChange={handleChange}
-                                    label="작물 종류"
-                                    endAdornment={
-                                        <IconButton
-                                            size="small"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleOpenDialog('cropType');
-                                            }}
-                                            sx={{ mr: 2 }}
-                                        >
-                                            <AddIcon />
-                                        </IconButton>
-                                    }
-                                >
-                                    {cropTypeOptions.map((option) => (
-                                        <MenuItem key={option.value} value={option.value}>
-                                            {option.label}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                                {errors.cropType && (
-                                    <FormHelperText>{errors.cropType}</FormHelperText>
-                                )}
-                            </FormControl>
-                        </Grid>
+                        {/* 위치 추가 버튼 */}
+                        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+                            <Button
+                                variant="outlined"
+                                color="primary"
+                                startIcon={<AddIcon />}
+                                onClick={addNewLocation}
+                                fullWidth
+                                sx={{ maxWidth: 400 }}
+                            >
+                                새 위치 추가
+                            </Button>
+                        </Box>
                     </Grid>
+
                 </TabPanel>
 
                 {/* 추가 정보 탭 */}
                 <TabPanel value={tabValue} index={1}>
                     <Grid container spacing={3}>
                         {/* 수확 예정일 */}
-                        <Grid size={{ xs: 12, sm: 6 }} >
-                            <DatePicker
-                                label="예상 수확일"
-                                value={formData.estimatedHarvestDate || null}
-                                onChange={handleDateChange}
-                                slotProps={{
-                                    textField: {
-                                        fullWidth: true,
-                                        InputProps: {
-                                            startAdornment: (
-                                                <InputAdornment position="start">
-                                                    <CalendarIcon sx={{ color: 'action.active' }} />
-                                                </InputAdornment>
-                                            ),
+                        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ko}>
+                            <Grid size={{ xs: 12, sm: 6 }} >
+                                <DatePicker
+                                    label="예상 수확일"
+                                    value={formData.estimatedHarvestDate || null}
+                                    onChange={handleDateChange}
+                                    slotProps={{
+                                        textField: {
+                                            fullWidth: true,
+                                            InputProps: {
+                                                startAdornment: (
+                                                    <InputAdornment position="start">
+                                                        <CalendarIcon sx={{ color: 'action.active' }} />
+                                                    </InputAdornment>
+                                                ),
+                                            },
                                         },
-                                    },
-                                }}
-                            />
-                        </Grid>
+                                    }}
+                                />
+                            </Grid>
+                        </LocalizationProvider>
 
                         {/* 작업 단계 */}
                         <Grid size={{ xs: 12, sm: 6 }} >
@@ -758,7 +1380,10 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
                                 label="메모"
                                 name="memo"
                                 value={formData.memo || ''}
-                                onChange={handleChange}
+                                onChange={(e) => setFormData({
+                                    ...formData,
+                                    memo: e.target.value
+                                })}
                                 multiline
                                 rows={4}
                                 placeholder="추가적인 참고 사항을 입력하세요"
@@ -826,7 +1451,156 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
                     </Button>
                 </DialogActions>
             </Dialog>
-        </Paper>
+
+            {/* 농가 추가 다이얼로그 - 다음 주소검색 통합 */}
+            <Dialog
+                open={showAddFarmerDialog}
+                onClose={() => setShowAddFarmerDialog(false)}
+                fullWidth
+                maxWidth="sm"
+            >
+                <DialogTitle>
+                    새 농가 추가
+                </DialogTitle>
+                <DialogContent>
+                    {farmerErrors.submit && (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                            {farmerErrors.submit}
+                        </Alert>
+                    )}
+                    <Box sx={{ mt: 2 }}>
+                        <BasicInfo
+                            formData={newFarmer}
+                            errors={farmerErrors}
+                            onChange={handleNewFarmerChange}
+                            paymentGroups={paymentGroups || []}
+                            handleOpenDialog={handleOpenDialog}
+                        />
+
+                        {/* 주소 필드 - 다음 주소 검색 통합 */}
+                        <Grid container spacing={2} sx={{ mt: 1 }}>
+                            <Grid size={{ xs: 12 }}>
+                                <Typography variant="subtitle1" fontWeight="medium" sx={{ mb: 1 }}>주소 정보</Typography>
+                                <TextField
+                                    fullWidth
+                                    label="주소"
+                                    name="address.full"
+                                    value={newFarmer.address?.full || ''}
+                                    onClick={() => {
+                                        // 다음 주소 검색 실행
+                                        if (!(window as any).daum || !(window as any).daum.Postcode) {
+                                            const script = document.createElement('script');
+                                            script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+                                            script.async = true;
+                                            script.onload = () => {
+                                                // 스크립트 로드 후 주소 검색 실행
+                                                new (window as any).daum.Postcode({
+                                                    oncomplete: (data: any) => {
+                                                        // 선택한 주소 데이터 저장
+                                                        const addressUpdate = {
+                                                            full: data.address,
+                                                            zipcode: data.zonecode,
+                                                            subdistrict: data.bname || '', // 면단위(법정동/법정리) 저장
+                                                            detail: newFarmer.address?.detail || ''
+                                                        };
+
+                                                        // 주소 정보 업데이트
+                                                        setNewFarmer(prev => ({
+                                                            ...prev,
+                                                            address: addressUpdate
+                                                        }));
+                                                    }
+                                                }).open();
+                                            };
+                                            document.head.appendChild(script);
+                                        } else {
+                                            new (window as any).daum.Postcode({
+                                                oncomplete: (data: any) => {
+                                                    // 선택한 주소 데이터 저장
+                                                    const addressUpdate = {
+                                                        full: data.address,
+                                                        zipcode: data.zonecode,
+                                                        subdistrict: data.bname || '', // 면단위(법정동/법정리) 저장
+                                                        detail: newFarmer.address?.detail || ''
+                                                    };
+
+                                                    // 주소 정보 업데이트
+                                                    setNewFarmer(prev => ({
+                                                        ...prev,
+                                                        address: addressUpdate
+                                                    }));
+                                                }
+                                            }).open();
+                                        }
+                                    }}
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <LocationOnIcon color="action" />
+                                            </InputAdornment>
+                                        ),
+                                        readOnly: true,
+                                    }}
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: 2,
+                                            bgcolor: 'background.paper'
+                                        }
+                                    }}
+                                />
+                            </Grid>
+                            <Grid size={{ xs: 12 }}>
+                                <TextField
+                                    fullWidth
+                                    label="상세주소"
+                                    name="address.detail"
+                                    value={newFarmer.address?.detail || ''}
+                                    onChange={handleNewFarmerChange}
+                                    placeholder="나머지 상세 주소를 입력하세요"
+                                />
+                            </Grid>
+                            <Grid size={{ xs: 12 }}>
+                                <TextField
+                                    fullWidth
+                                    label="면단위"
+                                    name="address.subdistrict"
+                                    value={newFarmer.address?.subdistrict || ''}
+                                    onChange={handleNewFarmerChange}
+                                    placeholder="면단위가 자동으로 입력됩니다"
+                                    InputProps={{
+                                        readOnly: true,
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <HomeIcon color="action" />
+                                            </InputAdornment>
+                                        ),
+                                    }}
+                                    helperText="주소 검색 시 자동으로 입력되는 면단위 정보입니다"
+                                />
+                            </Grid>
+                        </Grid>
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        onClick={() => setShowAddFarmerDialog(false)}
+                        color="inherit"
+                        disabled={isAddingFarmer}
+                    >
+                        취소
+                    </Button>
+                    <Button
+                        onClick={handleAddNewFarmer}
+                        color="primary"
+                        variant="contained"
+                        disabled={isAddingFarmer}
+                        startIcon={isAddingFarmer ? <CircularProgress size={20} /> : null}
+                    >
+                        추가
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </Paper >
     );
 };
 

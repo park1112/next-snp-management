@@ -59,6 +59,8 @@ import {
 import { Field } from '@/types';
 import { getFields, getCropTypes, deleteField } from '@/services/firebase/fieldService';
 import { getSubdistricts } from '@/services/firebase/farmerService';
+import KakaoSimpleMap from '../KakaoSimpleMap';
+import FieldMap from './FieldMap';
 
 interface FieldListProps {
     initialFields?: Field[];
@@ -785,16 +787,39 @@ const FieldList: React.FC<FieldListProps> = ({ initialFields = [] }) => {
             {!loading && processedFields.length > 0 && viewMode === 'map' && (
                 <Box
                     sx={{
-                        height: 500,
-                        bgcolor: '#f1f3f5',
+                        height: 'calc(100vh - 320px)',
                         borderRadius: 2,
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
+                        overflow: 'hidden',
+                        border: '1px solid',
+                        borderColor: 'divider'
                     }}
                 >
-                    <Typography>지도 뷰 구현 예정</Typography>
-                    {/* 실제 지도 연동 필요 */}
+                    {paginatedFields.some(field =>
+                        field.address?.coordinates?.latitude &&
+                        field.address?.coordinates?.longitude
+                    ) ? (
+                        <FieldMap
+
+                        />
+                    ) : (
+                        <Box
+                            sx={{
+                                height: '100%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                bgcolor: '#f1f3f5',
+                            }}
+                        >
+                            <Typography variant="body1" gutterBottom>
+                                좌표 정보가 있는 농지가 없습니다.
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                농지 등록 시 주소를 정확히 입력하면 지도에 표시됩니다.
+                            </Typography>
+                        </Box>
+                    )}
                 </Box>
             )}
 

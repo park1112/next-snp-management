@@ -47,6 +47,7 @@ import {
 } from '@mui/icons-material';
 import { Farmer } from '@/types';
 import { getFarmers, searchFarmers, getSubdistricts } from '@/services/firebase/farmerService';
+import KakaoSimpleMap from '../KakaoSimpleMap';
 
 interface FarmerListProps {
     initialFarmers?: Farmer[];
@@ -102,7 +103,7 @@ const FarmerList: React.FC<FarmerListProps> = ({ initialFarmers = [] }) => {
 
         // Apply subdistrict filter
         if (filterSubdistrict) {
-            result = result.filter(farmer => farmer.subdistrict === filterSubdistrict);
+            result = result.filter(farmer => farmer.address.subdistrict === filterSubdistrict);
         }
 
         return result;
@@ -428,7 +429,7 @@ const FarmerList: React.FC<FarmerListProps> = ({ initialFarmers = [] }) => {
                                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                                         <PlaceIcon fontSize="small" sx={{ color: 'text.secondary', mr: 1 }} />
                                         <Typography variant="body2" color="text.secondary" noWrap>
-                                            {farmer.subdistrict}
+                                            {farmer.address.subdistrict}
                                         </Typography>
                                     </Box>
 
@@ -468,15 +469,41 @@ const FarmerList: React.FC<FarmerListProps> = ({ initialFarmers = [] }) => {
                 <Box
                     sx={{
                         height: 500,
-                        bgcolor: '#f1f3f5',
                         borderRadius: 2,
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
+                        overflow: 'hidden',
+                        border: '1px solid',
+                        borderColor: 'divider'
                     }}
                 >
-                    <Typography>지도 뷰 구현 예정</Typography>
-                    {/* 실제 지도 연동 필요 */}
+                    {paginatedFarmers.some(farmer =>
+                        farmer.address?.coordinates?.latitude &&
+                        farmer.address?.coordinates?.longitude
+                    ) ? (
+                        <KakaoSimpleMap
+                            address={paginatedFarmers[0].address.full}
+                            latitude={paginatedFarmers[0].address?.coordinates?.latitude}
+                            longitude={paginatedFarmers[0].address?.coordinates?.longitude}
+                            zoom={3}
+                        />
+                    ) : (
+                        <Box
+                            sx={{
+                                height: '100%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                bgcolor: '#f1f3f5',
+                            }}
+                        >
+                            <Typography variant="body1" gutterBottom>
+                                좌표 정보가 있는 농가가 없습니다.
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                농가 등록 시 주소를 정확히 입력하면 지도에 표시됩니다.
+                            </Typography>
+                        </Box>
+                    )}
                 </Box>
             )}
 

@@ -19,7 +19,7 @@ import {
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { Field, Farmer } from '@/types';
+import { Field, Farmer, LocationItem } from '@/types';
 import { getFarmerById } from './farmerService';
 
 // Firestore 인스턴스
@@ -60,20 +60,34 @@ export const getFields = async (): Promise<Field[]> => {
         const fields = await Promise.all(querySnapshot.docs.map(async doc => {
             const data = doc.data();
 
-            // 좌표 정보가 없는 경우 임시로 추가 (테스트용)
-            if (!data.address.coordinates) {
-                data.address.coordinates = {
-                    latitude: 37.2156 + (Math.random() * 0.1),  // 랜덤 값으로 다른 위치 생성
-                    longitude: 127.0642 + (Math.random() * 0.1)
-                };
-            }
-
             let farmerName = '';
             if (data.farmerId) {
                 const farmer = await getFarmerById(data.farmerId);
                 if (farmer) {
                     farmerName = farmer.name;
                 }
+            }
+
+            // 위치 정보가 없는 경우 주소 정보로부터 위치 정보 생성
+            if (!data.locations && data.address) {
+                // 좌표 정보가 없는 경우 임시로 추가 (테스트용)
+                const coordinates = data.address.coordinates || {
+                    latitude: 37.2156 + (Math.random() * 0.1),
+                    longitude: 127.0642 + (Math.random() * 0.1)
+                };
+
+                data.locations = [
+                    {
+                        id: `location-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                        address: {
+                            ...data.address,
+                            coordinates
+                        },
+                        flagNumber: 1,
+                        area: data.area || { value: 0, unit: '평' },
+                        cropType: data.cropType || '',
+                    }
+                ];
             }
 
             return {
@@ -197,11 +211,42 @@ export const createField = async (fieldData: Omit<Field, 'id' | 'createdAt' | 'u
             throw new Error("User not authenticated");
         }
 
-        // 현재 단계 정보 추가
+        // 현재 단계 정보 추가 (기존 코드 유지)
         if (!fieldData.currentStage) {
             fieldData.currentStage = {
                 stage: '계약예정',
                 updatedAt: new Date(),
+            };
+        }
+
+        // 위치 정보가 없지만 주소 정보가 있는 경우 위치 정보 생성 (호환성)
+        if ((!fieldData.locations || fieldData.locations.length === 0) && fieldData.address) {
+            fieldData.locations = [
+                {
+                    id: `location-${Date.now()}`,
+                    address: fieldData.address as LocationItem['address'],
+                    flagNumber: 1,
+                    area: fieldData.area || { value: 0, unit: '평' },
+                    cropType: fieldData.cropType || '',
+                }
+            ];
+        }
+
+        // 위치 정보가 있는 경우 총 면적 계산
+        if (fieldData.locations && fieldData.locations.length > 0) {
+            // 같은 단위의 면적만 합산
+            const unit = fieldData.locations[0].area.unit;
+            const totalValue = fieldData.locations.reduce((sum, loc) => {
+                if (loc.area.unit === unit) {
+                    return sum + (loc.area.value || 0);
+                }
+                return sum;
+            }, 0);
+
+            // totalArea가 이미 지원됨
+            fieldData.totalArea = {
+                value: totalValue,
+                unit: unit
             };
         }
 
@@ -210,6 +255,7 @@ export const createField = async (fieldData: Omit<Field, 'id' | 'createdAt' | 'u
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
+
 
         // Firestore에 추가
         const docRef = await addDoc(fieldsCollection, newField);

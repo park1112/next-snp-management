@@ -8,7 +8,7 @@ import FieldMap from '@/components/fields/FieldMap';
 export default function FieldMapPage() {
     return (
         <MainLayout>
-            <Box sx={{ height: 'calc(100vh - 150px)' }}>
+            <Box sx={{ height: 'calc(100vh - 320px)' }}>
                 <FieldMap />
             </Box>
         </MainLayout>

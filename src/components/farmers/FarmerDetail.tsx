@@ -1,7 +1,7 @@
 // src/components/farmers/FarmerDetail.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Box,
@@ -47,6 +47,7 @@ import {
 } from '@mui/icons-material';
 import { Farmer, Field, Contract } from '@/types';
 import { deleteFarmer } from '@/services/firebase/farmerService';
+import { getFieldsByFarmerId } from '@/services/firebase/fieldService'; // 추가: 농지 조회 API
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -76,23 +77,27 @@ interface FarmerDetailProps {
     contracts?: Contract[];
 }
 
-const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contracts = [] }) => {
+const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields: initialFields = [], contracts = [] }) => {
     const router = useRouter();
     const theme = useTheme();
 
-    // States
+    // 탭 및 삭제 관련 상태
     const [tabValue, setTabValue] = useState(0);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
-    // Tab change handler
+    // 농지 정보(Fields)를 props에서 받아오거나, 없는 경우 조회
+    const [fields, setFields] = useState<Field[]>(initialFields);
+    const [fieldsLoading, setFieldsLoading] = useState<boolean>(false);
+
+    // 탭 변경 핸들러
     const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
         setTabValue(newValue);
     };
 
-    // Delete dialog handlers
+    // 삭제 관련 핸들러
     const handleDeleteClick = () => {
         setDeleteDialogOpen(true);
     };
@@ -117,7 +122,24 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
         }
     };
 
-    // Toggle view mode
+    // 탭 "농지" 정보를 조회 (만약 props로 받아온 정보가 없다면)
+    useEffect(() => {
+        if (!initialFields || initialFields.length === 0) {
+            setFieldsLoading(true);
+            getFieldsByFarmerId(farmer.id)
+                .then((fetchedFields) => {
+                    setFields(fetchedFields);
+                })
+                .catch((error) => {
+                    console.error('Error fetching fields:', error);
+                })
+                .finally(() => {
+                    setFieldsLoading(false);
+                });
+        }
+    }, [farmer.id, initialFields]);
+
+    // 보기 모드 토글 (목록/지도)
     const toggleViewMode = () => {
         setViewMode(viewMode === 'list' ? 'map' : 'list');
     };
@@ -135,7 +157,7 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
                     </Typography>
                     <Chip
                         size="small"
-                        label={farmer.subdistrict}
+                        label={farmer.address.subdistrict}
                         color="primary"
                         sx={{ ml: 2 }}
                     />
@@ -174,7 +196,7 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
                         label={`농지 (${fields.length})`}
                         id="farmer-tab-1"
                         aria-controls="farmer-tabpanel-1"
-                        disabled={fields.length === 0}
+                        disabled={fieldsLoading}
                     />
                     <Tab
                         label={`계약 (${contracts.length})`}
@@ -233,7 +255,7 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
                                 <ListItem sx={{ px: 0, py: 1 }}>
                                     <ListItemText
                                         primary="면단위"
-                                        secondary={farmer.subdistrict}
+                                        secondary={farmer.address.subdistrict}
                                         primaryTypographyProps={{ color: 'text.secondary', variant: 'body2' }}
                                         secondaryTypographyProps={{ color: 'text.primary', variant: 'body1' }}
                                     />
@@ -379,30 +401,14 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
 
             {/* Fields Panel */}
             <TabPanel value={tabValue} index={1}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                    <Typography variant="h6" fontWeight="bold">
-                        소속 농지 목록
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Button
-                            variant="outlined"
-                            startIcon={viewMode === 'list' ? <MapIcon /> : <ListIcon />}
-                            onClick={toggleViewMode}
-                        >
-                            {viewMode === 'list' ? '지도 보기' : '목록 보기'}
-                        </Button>
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            startIcon={<AddIcon />}
-                            onClick={() => router.push(`/fields/add?farmerId=${farmer.id}`)}
-                        >
-                            농지 추가
-                        </Button>
+                {fieldsLoading ? (
+                    <Box sx={{ textAlign: 'center', py: 5 }}>
+                        <CircularProgress />
+                        <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
+                            농지 정보를 불러오는 중입니다…
+                        </Typography>
                     </Box>
-                </Box>
-
-                {fields.length === 0 ? (
+                ) : fields.length === 0 ? (
                     <Box sx={{ textAlign: 'center', py: 5 }}>
                         <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
                             등록된 농지가 없습니다.
@@ -439,7 +445,6 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
                                                 {field.address.full.split(' ').pop() || '농지'}
                                             </Typography>
                                         </Box>
-
                                         <Box sx={{ mb: 2 }}>
                                             <Typography variant="body2" color="text.secondary" gutterBottom>
                                                 주소
@@ -448,7 +453,6 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
                                                 {field.address.full}
                                             </Typography>
                                         </Box>
-
                                         <Grid container spacing={2}>
                                             <Grid size={{ xs: 6 }}>
                                                 <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -467,16 +471,20 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
                                                 </Typography>
                                             </Grid>
                                         </Grid>
-
                                         <Box sx={{ mt: 2 }}>
                                             <Chip
                                                 size="small"
                                                 label={field.currentStage.stage}
                                                 color={
-                                                    field.currentStage.stage.includes('계약') ? 'primary' :
-                                                        field.currentStage.stage.includes('뽑기') ? 'secondary' :
-                                                            field.currentStage.stage.includes('자르기') ? 'info' :
-                                                                field.currentStage.stage.includes('담기') ? 'success' : 'default'
+                                                    field.currentStage.stage.includes('계약')
+                                                        ? 'primary'
+                                                        : field.currentStage.stage.includes('뽑기')
+                                                            ? 'secondary'
+                                                            : field.currentStage.stage.includes('자르기')
+                                                                ? 'info'
+                                                                : field.currentStage.stage.includes('담기')
+                                                                    ? 'success'
+                                                                    : 'default'
                                                 }
                                             />
                                         </Box>
@@ -497,13 +505,13 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
                         }}
                     >
                         <Typography>지도 뷰 구현 예정</Typography>
-                        {/* 실제 지도 연동 필요 */}
                     </Box>
                 )}
             </TabPanel>
 
             {/* Contracts Panel */}
             <TabPanel value={tabValue} index={2}>
+                {/* 계약 패널 내용 */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                     <Typography variant="h6" fontWeight="bold">
                         계약 목록
@@ -517,108 +525,25 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
                         계약 추가
                     </Button>
                 </Box>
-
-                {contracts.length === 0 ? (
+                {/* 계약 정보 렌더링 */}
+                <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
                     <Box sx={{ textAlign: 'center', py: 5 }}>
-                        <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-                            등록된 계약이 없습니다.
+                        <Typography variant="body1" color="text.secondary">
+                            {contracts.length > 0
+                                ? '계약 정보 기능이 준비 중입니다.'
+                                : '등록된 계약 정보가 없습니다.'}
                         </Typography>
                         <Button
                             variant="contained"
                             color="primary"
                             startIcon={<AddIcon />}
                             onClick={() => router.push(`/contracts/add?farmerId=${farmer.id}`)}
+                            sx={{ mt: 2 }}
                         >
                             계약 추가
                         </Button>
                     </Box>
-                ) : (
-                    <Grid container spacing={2}>
-                        {contracts.map((contract) => (
-                            <Grid size={{ xs: 12, sm: 6, md: 6 }} key={contract.id}>
-                                <Card
-                                    sx={{
-                                        borderRadius: 2,
-                                        transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
-                                        '&:hover': {
-                                            transform: 'translateY(-4px)',
-                                            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                                        },
-                                        cursor: 'pointer',
-                                    }}
-                                    onClick={() => router.push(`/contracts/${contract.id}`)}
-                                >
-                                    <CardContent>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                                            <DescriptionIcon color="primary" sx={{ mr: 1 }} />
-                                            <Typography variant="h6" fontWeight="bold">
-                                                계약 #{contract.contractNumber}
-                                            </Typography>
-                                            <Chip
-                                                size="small"
-                                                label={
-                                                    contract.contractStatus === 'pending' ? '예정' :
-                                                        contract.contractStatus === 'active' ? '진행중' :
-                                                            contract.contractStatus === 'completed' ? '완료' : '취소'
-                                                }
-                                                color={
-                                                    contract.contractStatus === 'pending' ? 'warning' :
-                                                        contract.contractStatus === 'active' ? 'primary' :
-                                                            contract.contractStatus === 'completed' ? 'success' : 'error'
-                                                }
-                                                sx={{ ml: 'auto' }}
-                                            />
-                                        </Box>
-
-                                        <Box sx={{ mb: 2 }}>
-                                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                                                계약 체결일
-                                            </Typography>
-                                            <Typography variant="body2">
-                                                {new Date(contract.contractDate).toLocaleDateString('ko-KR')}
-                                            </Typography>
-                                        </Box>
-
-                                        <Grid container spacing={2}>
-                                            <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-                                                <Typography variant="body2" color="text.secondary" gutterBottom>
-                                                    계약 유형
-                                                </Typography>
-                                                <Typography variant="body2">
-                                                    {contract.contractType}
-                                                </Typography>
-                                            </Grid>
-                                            <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-                                                <Typography variant="body2" color="text.secondary" gutterBottom>
-                                                    총 계약금액
-                                                </Typography>
-                                                <Typography variant="body2" fontWeight="bold">
-                                                    {contract.totalAmount.toLocaleString()}원
-                                                </Typography>
-                                            </Grid>
-                                        </Grid>
-
-                                        <Box sx={{ mt: 2 }}>
-                                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                                                농지
-                                            </Typography>
-                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                                {contract.fieldNames?.map((fieldName, index) => (
-                                                    <Chip
-                                                        key={index}
-                                                        size="small"
-                                                        label={fieldName}
-                                                        variant="outlined"
-                                                    />
-                                                ))}
-                                            </Box>
-                                        </Box>
-                                    </CardContent>
-                                </Card>
-                            </Grid>
-                        ))}
-                    </Grid>
-                )}
+                </Paper>
             </TabPanel>
 
             {/* Work History Panel */}
@@ -670,3 +595,6 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields = [], contra
 };
 
 export default FarmerDetail;
+
+
+

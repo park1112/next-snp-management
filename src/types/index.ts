@@ -5,13 +5,13 @@ export interface Farmer {
     id: string;
     name: string;
     phoneNumber: string;
-    subdistrict: string;  // 면단위
     paymentGroup: string; // 결제소속
     personalId?: string;  // 주민등록번호 (optional)
-    address?: {
+    address: {
         full: string;
         zipcode?: string;
         detail?: string;
+        subdistrict?: string;
         coordinates?: {
             latitude: number;
             longitude: number;
@@ -35,15 +35,17 @@ export interface Farmer {
 
 // 농지 관련 타입
 export interface Field {
+    // 기존 필드들은 그대로 유지
     id: string;
-    farmerId: string;     // 소속 농가 ID 참조
-    farmerName?: string;  // UI 표시용 농가 이름
-    phoneNumber?: string; // 전화번호
-    paymentGroup?: string; // 결제소속
-    subdistrict?: string; // 면단위
+    farmerId: string;
+    farmerName?: string;
+    phoneNumber?: string;
+    paymentGroup?: string;
+    subdistrict?: string;
     address: {
         full: string;
         detail?: string;
+        subdistrict?: string;
         coordinates?: {
             latitude: number;
             longitude: number;
@@ -51,26 +53,60 @@ export interface Field {
     };
     area: {
         value: number;
-        unit: string;      // 평, 제곱미터, 헥타르 등
+        unit: string;
     };
-    cropType: string;     // 작물 종류
+    cropType: string;
     estimatedHarvestDate?: Date;
     currentStage: {
-        stage: string;      // 계약예정, 계약완료, 뽑기준비 등
+        stage: string;
         updatedAt: Date;
     };
-    contractIds?: string[]; // 연결된 계약 ID 배열
-    contractStatus?: string; // 현재 계약 상태
-    currentContract?: {    // 현재 활성 계약 정보
+    contractIds?: string[];
+    contractStatus?: string;
+    currentContract?: {
         id: string;
         contractNumber: string;
         finalPaymentDueDate?: Date;
     };
-    schedules?: string[]; // 작업 일정 ID 배열
+    schedules?: string[];
     createdAt: Date;
     updatedAt: Date;
     memo?: string;
+
+    // 이미 totalArea가 있으므로 변경 없음
+    totalArea?: {
+        value: number;
+        unit: string;
+    };
+
+    // 새로 추가된 필드: 여러 위치 정보 배열
+    locations?: LocationItem[];
 }
+
+// 위치 정보 타입 정의 (새로 추가)
+export interface LocationItem {
+    id: string;
+    address: {
+        full: string;
+        detail: string;
+        zipcode: string;
+        subdistrict: string;
+        coordinates?: {
+            latitude: number;
+            longitude: number;
+        };
+    };
+    flagNumber: number;
+    area: {
+        value: number;
+        unit: string;
+    };
+    cropType: string;
+    note?: string; // 위치별 특이사항/메모
+}
+
+
+
 
 // 작업자 타입
 export interface BaseWorker {
@@ -313,4 +349,10 @@ export interface Payment {
 export interface DropdownOption {
     value: string;
     label: string;
+}
+
+// PaymentGroup 타입 정의
+export interface PaymentGroup {
+    id: string;
+    name: string;
 }
