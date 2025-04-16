@@ -339,13 +339,44 @@ export const getForemanCategories = async (): Promise<string[]> => {
         querySnapshot.docs.forEach(doc => {
             const data = doc.data();
             if (data.foremanInfo?.category) {
-                categoriesSet.add(data.foremanInfo.category);
+                // category가 객체이고 name 배열이 있는 경우
+                if (data.foremanInfo.category.name && Array.isArray(data.foremanInfo.category.name)) {
+                    data.foremanInfo.category.name.forEach((cat: string) => categoriesSet.add(cat));
+                }
+                // category가 문자열인 경우 (이전 데이터 구조와의 호환성을 위해)
+                else if (typeof data.foremanInfo.category === 'string') {
+                    categoriesSet.add(data.foremanInfo.category);
+                }
             }
         });
 
         return Array.from(categoriesSet).sort();
     } catch (error) {
         console.error("Error getting foreman categories:", error);
+        throw error;
+    }
+};
+
+// 카테고리별 작업자 조회 함수 추가
+export const getWorkersByCategory = async (categoryName: string): Promise<Worker[]> => {
+    try {
+        const workersData = await getWorkers();
+        return workersData.filter(worker => {
+            if (worker.type === 'foreman') {
+                const foreman = worker as Foreman;
+                // category가 배열인 경우
+                if (Array.isArray(foreman.foremanInfo.category)) {
+                    return foreman.foremanInfo.category.includes(categoryName);
+                }
+                // category가 문자열인 경우
+                else if (typeof foreman.foremanInfo.category === 'string') {
+                    return foreman.foremanInfo.category === categoryName;
+                }
+            }
+            return false;
+        });
+    } catch (error) {
+        console.error('Error fetching workers by category:', error);
         throw error;
     }
 };

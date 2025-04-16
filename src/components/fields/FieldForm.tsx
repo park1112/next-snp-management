@@ -69,7 +69,7 @@ import { useAppContext } from '@/contexts/AppContext';
 import { getLastFlagNumber, updateLastFlagNumber } from '@/services/firebase/firestoreService';
 import BasicInfo from '../form/BasicInfo';
 import { getFirestore, collection, getDocs, } from 'firebase/firestore';
-import CollectionSelector from '../common/CollectionSelector';
+import CollectionSelector from '../common/AffiliationCollectionSelector';
 import { useCropTypes } from '@/hooks/common/useCropTypes';
 import { usePaymentGroups } from '@/hooks/common/usePaymentGroups';
 

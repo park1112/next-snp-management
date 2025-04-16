@@ -29,7 +29,7 @@ import { createFarmer, updateFarmer, getSubdistricts } from '@/services/firebase
 import { collection, getDocs, addDoc, serverTimestamp, getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { PaymentGroup } from '@/services/firebase/paymentGroupService';
-import CollectionSelector from '../common/CollectionSelector';
+import CollectionSelector from '../common/AffiliationCollectionSelector';
 import { usePaymentGroups } from '@/hooks/common/usePaymentGroups';
 
 interface FarmerFormProps {

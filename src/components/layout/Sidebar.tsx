@@ -620,6 +620,18 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                             </ListItemIcon>
                             <ListItemText primary="작물 종류 관리" />
                         </ListItemButton>
+                        <ListItemButton
+                            sx={{ pl: 4, borderRadius: 1, mb: 0.5 }}
+                            component={Link}
+                            href="/categories/categories"
+                            selected={pathname === '/categories/categories'}
+                            onClick={handleLinkClick}
+                        >
+                            <ListItemIcon>
+                                <AddIcon fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText primary="작업 프로세스 관리" />
+                        </ListItemButton>
 
                     </List>
                 </Collapse>

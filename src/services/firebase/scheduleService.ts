@@ -23,6 +23,13 @@ import { getFirestore } from 'firebase/firestore';
 const db = getFirestore();
 const schedulesCollection = collection(db, 'schedules');
 
+interface CategorySchedule {
+    scheduledDate: {
+        start: Date | null;
+    };
+    [key: string]: any;
+}
+
 // Timestamp를 Date로 변환하는 유틸리티 함수
 const convertTimestampToDate = (data: any): any => {
     const result = { ...data };
@@ -143,6 +150,7 @@ export const getSchedules = async (): Promise<Schedule[]> => {
         throw error;
     }
 };
+
 
 // 농가별 작업 일정 조회
 export const getSchedulesByFarmerId = async (farmerId: string): Promise<Schedule[]> => {
@@ -367,21 +375,33 @@ export const createSchedule = async (scheduleData: Omit<Schedule, 'id' | 'create
     try {
         // 데이터 전처리
         const processedData = prepareDataForFirestore(scheduleData);
+
         // 추가: 각 이름 정보 가져오기
         const farmerName = scheduleData.farmerId ? (await getFarmerById(scheduleData.farmerId))?.name || '' : '';
         const fieldName = scheduleData.fieldId ? ((await getFieldById(scheduleData.fieldId))?.address.full.split(' ').pop() || '농지') : '';
         const workerName = scheduleData.workerId ? (await getWorkerById(scheduleData.workerId))?.name || '' : '';
 
-
-        // Timestamp로 변환하기 전에 날짜 데이터 확인 로그
-        console.log("변환 전 날짜 데이터:", scheduleData.scheduledDate);
+        // 상태 이력 준비 (serverTimestamp 제거)
+        let stageHistory = [];
+        if (scheduleData.stage?.history && Array.isArray(scheduleData.stage.history)) {
+            stageHistory = scheduleData.stage.history.map(item => ({
+                ...item,
+                timestamp: item.timestamp || new Date() // serverTimestamp() 대신 Date 객체 사용
+            }));
+        } else {
+            stageHistory = [{
+                stage: scheduleData.stage?.current || '예정',
+                timestamp: new Date(), // serverTimestamp() 대신 Date 객체 사용
+                by: 'system'
+            }];
+        }
 
         // 날짜 필드 직접 처리 - 별도 변수에 저장하지 않고 바로 객체에 병합
         const newSchedule = {
             ...processedData,
-            scheduledDate: {
-                start: scheduleData.scheduledDate?.start ? Timestamp.fromDate(scheduleData.scheduledDate.start) : serverTimestamp(),
-                end: scheduleData.scheduledDate?.end ? Timestamp.fromDate(scheduleData.scheduledDate.end) : serverTimestamp()
+            stage: {
+                current: scheduleData.stage?.current || '예정',
+                history: stageHistory
             },
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
@@ -390,22 +410,18 @@ export const createSchedule = async (scheduleData: Omit<Schedule, 'id' | 'create
             workerName
         };
 
-        // 상태 이력에 초기 상태 추가
-        if (!newSchedule.stage) {
-            newSchedule.stage = {
-                current: '예정',
-                history: [{
-                    stage: '예정',
-                    timestamp: serverTimestamp(),
-                    by: 'system'
-                }]
+        // scheduledDate 필드 추가 (필요하다면)
+        if (scheduleData.scheduledDate) {
+            newSchedule.scheduledDate = {
+                start: scheduleData.scheduledDate.start instanceof Date ?
+                    Timestamp.fromDate(scheduleData.scheduledDate.start) :
+                    (typeof scheduleData.scheduledDate.start === 'string' ?
+                        Timestamp.fromDate(new Date(scheduleData.scheduledDate.start)) : null),
+                end: scheduleData.scheduledDate.end instanceof Date ?
+                    Timestamp.fromDate(scheduleData.scheduledDate.end) :
+                    (typeof scheduleData.scheduledDate.end === 'string' ?
+                        Timestamp.fromDate(new Date(scheduleData.scheduledDate.end)) : null)
             };
-        } else if (!newSchedule.stage.history) {
-            newSchedule.stage.history = [{
-                stage: newSchedule.stage.current || '예정',
-                timestamp: serverTimestamp(),
-                by: 'system'
-            }];
         }
 
         console.log("저장할 데이터:", newSchedule);
@@ -712,3 +728,4 @@ export const updateScheduleStage = async (id: string, stage: string, userId: str
         throw error;
     }
 };
+

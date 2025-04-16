@@ -97,6 +97,24 @@ export function useWorkers(workerType?: 'foreman' | 'driver') {
         }
     };
 
+    // 카테고리별 작업자 필터링 함수
+    const getWorkersByCategory = (categoryName: string) => {
+        return workers.filter(worker => {
+            if (worker.type === 'foreman') {
+                const foreman = worker as Foreman;
+                // foremanInfo.category 필드가 문자열인 경우
+                if (typeof foreman.foremanInfo.category === 'string') {
+                    return foreman.foremanInfo.category === categoryName;
+                }
+                // foremanInfo.category 필드가 배열인 경우
+                if (Array.isArray(foreman.foremanInfo.category)) {
+                    return foreman.foremanInfo.category.includes(categoryName);
+                }
+            }
+            return false;
+        });
+    };
+
     // 작업자 검색 함수
     const searchWorkers = async (
         searchType: 'name' | 'phoneNumber' | 'vehicleNumber',
@@ -132,7 +150,8 @@ export function useWorkers(workerType?: 'foreman' | 'driver') {
         updateWorker: updateWorkerItem,
         deleteWorker: deleteWorkerItem,
         refreshWorkers,
-        searchWorkers
+        searchWorkers,
+        getWorkersByCategory
     };
 }
 

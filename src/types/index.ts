@@ -106,12 +106,26 @@ export interface LocationItem {
 }
 
 // 카테고리와 세부 작업 타입 정의 (신규)
+export interface Rate {
+    id: string;
+    name: string;
+    description?: string;
+    defaultPrice: number;
+    unit: string;
+    createdAt: string | Date;
+}
+
 export interface Category {
     id: string;
     name: string;
-    rates?: WorkRate[];
-    createdAt: Date;
+    description?: string;
+    nextCategoryId?: string | null;
+    rates?: Rate[];
+    order?: number; // 카테고리 순서
+    createdAt: string | Date;
+    updatedAt: string | Date;
 }
+
 
 // 세부 작업 단가 타입 정의 (신규)
 export interface WorkRate {
@@ -256,13 +270,6 @@ export interface LocationItem {
     note?: string; // 위치별 특이사항/메모
 }
 
-// 카테고리와 세부 작업 타입 정의 (신규)
-export interface Category {
-    id: string;
-    name: string;
-    rates?: WorkRate[];
-    createdAt: Date;
-}
 
 // 세부 작업 단가 타입 정의 (신규)
 export interface WorkRate {
@@ -378,6 +385,16 @@ export interface Schedule {
         quantity?: number;  // 작업량
         unit: string;       // 단위 (시간, 개수 등)
     };
+    categorySchedules?: {
+        categoryId: string;
+        categoryName: string;
+        stage: '예정' | '준비중' | '진행중' | '완료' | '취소';
+        workerId: string;
+        workerName?: string;
+        scheduledDate: {
+            start: Date;
+        };
+    }[];
     transportInfo?: {     // 운송 전용 필드
         origin: {
             address: string;

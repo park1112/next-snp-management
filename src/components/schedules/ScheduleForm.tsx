@@ -63,7 +63,7 @@ import { Schedule, Farmer, Field, Worker, Foreman, Driver, LocationItem } from '
 import { createSchedule, updateSchedule } from '@/services/firebase/scheduleService';
 import { getFarmers, searchFarmers } from '@/services/firebase/farmerService';
 import { getFieldsByFarmerId } from '@/services/firebase/fieldService';
-import { getWorkers } from '@/services/firebase/workerService';
+import { getForemanCategories, getWorkers } from '@/services/firebase/workerService';
 
 
 interface ScheduleFormProps {
@@ -95,19 +95,12 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
     const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
 
     // 기본 작업 일정 데이터
-    const [formData, setFormData] = useState<Partial<Schedule>>(initialData || {
-        type: 'pulling',
+    const [formData, setFormData] = useState<Partial<Schedule>>({
+        // type 필드 제거
+        // scheduledDate 필드 제거
         farmerId: farmerId || '',
         fieldId: fieldId || '',
         workerId: workerId || '',
-        stage: {
-            current: '예정',
-            history: []
-        },
-        scheduledDate: {
-            start: startDate ? new Date(startDate) : new Date(),
-            end: endDate ? new Date(endDate) : new Date(new Date().setHours(new Date().getHours() + 2))
-        },
         paymentStatus: 'pending',
         memo: ''
     });
@@ -126,6 +119,18 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
         { value: 'packing', label: '포장' },
         { value: 'transport', label: '운송' },
     ]);
+
+    // 새로운 카테고리 스케줄 상태 추가
+    const [categorySchedules, setCategorySchedules] = useState<{
+        categoryId: string;
+        categoryName: string;
+        stage: '예정' | '준비중' | '진행중' | '완료' | '취소';
+        workerId: string;
+        workerName?: string;
+        scheduledDate: {
+            start: Date;
+        }
+    }[]>([]);
 
     // 다중 농지 선택을 위한 상태
     const [selectedFarmer, setSelectedFarmer] = useState<Farmer | null>(null);
@@ -146,6 +151,32 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
     const [success, setSuccess] = useState<boolean>(false);
     const [successMessage, setSuccessMessage] = useState<string>('');
     const [cropType, setCropType] = useState<string>('');
+
+    // 2. 작업 카테고리 상태 추가 및 로드
+    const [categories, setCategories] = useState<Array<{ id: string, name: string }>>([]);
+
+    // src/components/schedules/ScheduleForm.tsx의 useEffect 수정
+    // src/components/schedules/ScheduleForm.tsx의 useEffect 수정
+    useEffect(() => {
+        const loadCategories = async () => {
+            try {
+                console.log("Fetching categories...");
+                const categoriesData = await getForemanCategories();
+                console.log("Categories data:", categoriesData);
+
+                if (Array.isArray(categoriesData) && categoriesData.length > 0) {
+                    setCategories(categoriesData.map(name => ({ id: name, name })));
+                    console.log("Categories set:", categoriesData.map(name => ({ id: name, name })));
+                } else {
+                    console.error('Empty or invalid categories data:', categoriesData);
+                }
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        };
+
+        loadCategories();
+    }, []);
 
     // 작업 유형이 변경될 때 작업자 타입 필터 업데이트
     useEffect(() => {
@@ -507,41 +538,74 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
         }
     };
 
+    // 4. 카테고리 추가 함수
+    const handleAddCategory = (categoryId: string, categoryName: string) => {
+        // 이미 추가된 카테고리인지 확인
+        if (categorySchedules.some(cs => cs.categoryId === categoryId)) {
+            return;
+        }
+
+        setCategorySchedules([
+            ...categorySchedules,
+            {
+                categoryId,
+                categoryName,
+                stage: '예정',
+                workerId: '',
+                scheduledDate: {
+                    start: new Date()
+                }
+            }
+        ]);
+    };
+
+    // 5. 카테고리 스케줄 업데이트 함수
+    const updateCategorySchedule = (categoryId: string, field: string, value: any) => {
+        setCategorySchedules(prevSchedules =>
+            prevSchedules.map(cs =>
+                cs.categoryId === categoryId
+                    ? { ...cs, [field]: value }
+                    : cs
+            )
+        );
+    };
+
+
+
     // 폼 제출 핸들러
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // 이미 로딩 중이면 중복 제출 방지
-        if (loading) return;
-
         // 유효성 검사
         const newErrors: { [key: string]: string } = {};
-
-        if (!formData.type) {
-            newErrors.type = '작업 유형은 필수 항목입니다.';
-        }
 
         if (selectedFields.length === 0) {
             newErrors.fields = '최소 하나 이상의 농지를 선택해야 합니다.';
         }
 
-        // '예정' 상태가 아닐 경우에만 작업자 필수 체크
-        if (!formData.workerId && formData.stage?.current !== '예정') {
-            newErrors.workerId = '작업자는 필수 항목입니다.';
+        if (categorySchedules.length === 0) {
+            newErrors.categories = '최소 하나 이상의 작업 카테고리를 선택해야 합니다.';
         }
 
-        if (!formData.scheduledDate?.start) {
-            newErrors['scheduledDate.start'] = '작업 시작 일시는 필수 항목입니다.';
+        // 각 카테고리별 유효성 검사
+        categorySchedules.forEach((cs, index) => {
+            if (cs.stage !== '예정' && !cs.workerId) {
+                newErrors[`categorySchedules[${index}].workerId`] = '작업상태가 예정이 아닌 경우 작업반장은 필수입니다.';
+            }
+
+            if (!cs.scheduledDate.start) {
+                newErrors[`categorySchedules[${index}].scheduledDate.start`] = '작업 시작 일시는 필수입니다.';
+            }
+        });
+
+        // 오류 처리
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
         }
 
-        if (!formData.scheduledDate?.end) {
-            newErrors['scheduledDate.end'] = '작업 종료 일시는 필수 항목입니다.';
-        }
+        setLoading(true);
 
-        if (formData.scheduledDate?.start && formData.scheduledDate?.end &&
-            formData.scheduledDate.start > formData.scheduledDate.end) {
-            newErrors['scheduledDate.end'] = '종료 일시는 시작 일시보다 이후여야 합니다.';
-        }
 
         if (formData.type === 'transport') {
             if (!formData.transportInfo?.origin.address) {
@@ -569,40 +633,32 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
         setLoading(true);
 
         try {
+            // 카테고리 스케줄 전처리 (Date 객체를 ISO 문자열로 변환)
+            const processedCategorySchedules = categorySchedules.map(cs => ({
+                ...cs,
+                scheduledDate: {
+                    start: cs.scheduledDate.start.toISOString() // Date 객체를 ISO 문자열로 변환
+                },
+                // stage 이력이 있으면 그 이력의 timestamp를 문자열로 변환
+                stage: {
+                    current: cs.stage,
+                    history: [] // 이력은 서버에서 처리하도록 비워둠
+                }
+            }));
+
             // 저장할 여러 일정 데이터 준비
             const schedulePromises = selectedFields.map(async (field) => {
-                // 1. 상태 변경 이력 추가
-                const stageHistory = [...(formData.stage?.history || [])];
-                if (!isEdit || stageHistory.length === 0) {
-                    stageHistory.push({
-                        stage: formData.stage?.current || '예정',
-                        timestamp: new Date(),
-                        by: 'system'
-                    });
-                }
-
-                // 기본 데이터 구성
+                // 기본 데이터 구성 (scheduledDate 필드 제거)
                 const scheduleData = {
                     ...formData,
                     farmerId: field.farmerId,
                     fieldId: field.fieldId,
-                    // 명시적으로 scheduledDate 필드 설정
-                    scheduledDate: {
-                        start: formData.scheduledDate?.start || new Date(),
-                        end: formData.scheduledDate?.end || new Date(new Date().setHours(new Date().getHours() + 2))
-                    },
+                    categorySchedules: processedCategorySchedules,
                     stage: {
-                        current: formData.stage?.current || '예정',
-                        history: stageHistory
+                        current: '예정', // 기본 상태는 '예정'으로 설정
+                        history: [] // 서버에서 처리하도록 비워둠
                     },
-                    // 기본 단가 정보 명시적 추가
-                    rateInfo: {
-                        baseRate: formData.rateInfo?.baseRate || 0,
-                        unit: formData.rateInfo?.unit || '시간'
-                    },
-                    // 지불 상태 명시적 지정
                     paymentStatus: formData.paymentStatus || 'pending',
-                    // 추가 필드 정보: 농지 위치 정보, 깃발 번호
                     additionalInfo: {
                         ...formData.additionalInfo,
                         locationId: field.location.id,
@@ -611,15 +667,18 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                     }
                 };
 
+                // scheduledDate 필드 명시적 제거 (더 이상 사용하지 않음)
+                if (scheduleData.scheduledDate) {
+                    delete scheduleData.scheduledDate;
+                }
+
                 // 데이터 정제
                 const cleanedData = sanitizeData(scheduleData);
 
                 if (isEdit && initialData?.id) {
-                    // 작업 일정 수정은 현재는 단일 필드만 지원
                     await updateSchedule(initialData.id, cleanedData);
                     return initialData.id;
                 } else {
-                    // 새 작업 일정 등록
                     const id = await createSchedule(cleanedData as Required<Schedule>);
                     return id;
                 }
@@ -628,6 +687,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
             // 모든 일정 저장 기다리기
             await Promise.all(schedulePromises);
 
+            // 성공 메시지 및 리디렉션 처리
             const message = isEdit
                 ? '작업 일정이 성공적으로 수정되었습니다.'
                 : `${selectedFields.length}개의 작업 일정이 성공적으로 등록되었습니다.`;
@@ -649,6 +709,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
             setLoading(false);
         }
     };
+
 
     // undefined 값을 null로 변환하거나 제거하는 함수
     const sanitizeData = (data: any): any => {
@@ -709,54 +770,147 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                 )}
 
                 <Box component="form" onSubmit={handleSubmit} noValidate>
-                    {/* Basic Information Section */}
+                    {/* 새로운 Categories Section */}
                     <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 2, border: '1px solid #e0e0e0' }}>
                         <Typography variant="h6" fontWeight="600" sx={{ mb: 3, display: 'flex', alignItems: 'center', color: '#1976d2' }}>
-                            <InfoIcon sx={{ mr: 1, color: '#1976d2' }} />
-                            기본 정보
+                            <CategoryIcon sx={{ mr: 1, color: '#1976d2' }} />
+                            작업 카테고리 및 일정
                         </Typography>
-                        <Grid container spacing={3}>
-                            <Grid size={{ xs: 12, md: 6 }}>
-                                <FormControl fullWidth required error={!!errors.type}>
-                                    <InputLabel>작업 유형</InputLabel>
-                                    <Select
-                                        name="type"
-                                        value={formData.type || ''}
-                                        onChange={handleChange}
-                                        label="작업 유형"
-                                    >
-                                        {scheduleTypes.map((option) => (
-                                            <MenuItem key={option.value} value={option.value}>
-                                                {option.label}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                    {errors.type && (
-                                        <FormHelperText>{errors.type}</FormHelperText>
-                                    )}
-                                </FormControl>
+
+                        {/* 카테고리 선택 */}
+                        <Box sx={{ mb: 3 }}>
+                            <FormControl fullWidth>
+                                <InputLabel>카테고리 추가</InputLabel>
+                                <Select
+                                    value=""
+                                    onChange={(e) => {
+                                        const selectedCategory = categories.find(c => c.id === e.target.value);
+                                        if (selectedCategory) {
+                                            handleAddCategory(selectedCategory.id, selectedCategory.name);
+                                        }
+                                    }}
+                                    label="카테고리 추가"
+                                >
+                                    {categories.map((category) => (
+                                        <MenuItem
+                                            key={category.id}
+                                            value={category.id}
+                                            disabled={categorySchedules.some(cs => cs.categoryId === category.id)}
+                                        >
+                                            {category.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Box>
+
+                        {/* 선택된 카테고리 목록 */}
+                        {categorySchedules.length === 0 ? (
+                            <Alert severity="info">작업 카테고리를 추가해주세요.</Alert>
+                        ) : (
+                            <Grid container spacing={3}>
+                                {categorySchedules.map((cs, index) => (
+                                    <Grid size={{ xs: 12 }} key={cs.categoryId}>
+                                        <Card sx={{ mb: 2 }}>
+                                            <CardContent>
+                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                                    <Typography variant="h6">{cs.categoryName}</Typography>
+                                                    <IconButton
+                                                        onClick={() => setCategorySchedules(prev => prev.filter(c => c.categoryId !== cs.categoryId))}
+                                                    >
+                                                        <DeleteIcon />
+                                                    </IconButton>
+                                                </Box>
+
+                                                <Grid container spacing={2}>
+                                                    {/* 작업 상태 */}
+                                                    <Grid size={{ xs: 12, md: 4 }}>
+                                                        <FormControl fullWidth>
+                                                            <InputLabel>작업 상태</InputLabel>
+                                                            <Select
+                                                                value={cs.stage}
+                                                                onChange={(e) => updateCategorySchedule(
+                                                                    cs.categoryId,
+                                                                    'stage',
+                                                                    e.target.value
+                                                                )}
+                                                                label="작업 상태"
+                                                            >
+                                                                <MenuItem value="예정">예정</MenuItem>
+                                                                <MenuItem value="준비중">준비중</MenuItem>
+                                                                <MenuItem value="진행중">진행중</MenuItem>
+                                                                <MenuItem value="완료">완료</MenuItem>
+                                                                <MenuItem value="취소">취소</MenuItem>
+                                                            </Select>
+                                                        </FormControl>
+                                                    </Grid>
+
+                                                    {/* 작업반장 선택 */}
+                                                    <Grid size={{ xs: 12, md: 4 }}>
+                                                        <Autocomplete
+                                                            options={filteredWorkers}
+                                                            getOptionLabel={(option) => option.name}
+                                                            value={filteredWorkers.find(w => w.id === cs.workerId) || null}
+                                                            onChange={(e, newValue) => {
+                                                                updateCategorySchedule(
+                                                                    cs.categoryId,
+                                                                    'workerId',
+                                                                    newValue ? newValue.id : ''
+                                                                );
+                                                                if (newValue) {
+                                                                    updateCategorySchedule(
+                                                                        cs.categoryId,
+                                                                        'workerName',
+                                                                        newValue.name
+                                                                    );
+                                                                }
+                                                            }}
+                                                            renderInput={(params) => (
+                                                                <TextField
+                                                                    {...params}
+                                                                    label="작업반장"
+                                                                    required={cs.stage !== '예정'}
+                                                                    error={!!errors[`categorySchedules[${index}].workerId`]}
+                                                                    helperText={errors[`categorySchedules[${index}].workerId`] || ''}
+                                                                />
+                                                            )}
+                                                        />
+                                                    </Grid>
+
+                                                    {/* 작업 시작 일시 */}
+                                                    <Grid size={{ xs: 12, md: 4 }}>
+                                                        <DateTimePicker
+                                                            label="작업 시작 일시"
+                                                            value={cs.scheduledDate.start}
+                                                            onChange={(date) => {
+                                                                if (date) {
+                                                                    updateCategorySchedule(
+                                                                        cs.categoryId,
+                                                                        'scheduledDate',
+                                                                        { start: date }
+                                                                    );
+                                                                }
+                                                            }}
+                                                            slotProps={{
+                                                                textField: {
+                                                                    fullWidth: true,
+                                                                    required: true,
+                                                                    error: !!errors[`categorySchedules[${index}].scheduledDate.start`],
+                                                                    helperText: errors[`categorySchedules[${index}].scheduledDate.start`] || '',
+                                                                },
+                                                            }}
+                                                        />
+                                                    </Grid>
+                                                </Grid>
+                                            </CardContent>
+                                        </Card>
+                                    </Grid>
+                                ))}
                             </Grid>
-                            <Grid size={{ xs: 12, md: 6 }}>
-                                <FormControl fullWidth required>
-                                    <InputLabel>작업 상태</InputLabel>
-                                    <Select
-                                        name="stage.current"
-                                        value={formData.stage?.current || '예정'}
-                                        onChange={handleChange}
-                                        label="작업 상태"
-                                    >
-                                        <MenuItem value="예정">예정</MenuItem>
-                                        <MenuItem value="준비중">준비중</MenuItem>
-                                        <MenuItem value="진행중">진행중</MenuItem>
-                                        <MenuItem value="완료">완료</MenuItem>
-                                        <MenuItem value="취소">취소</MenuItem>
-                                    </Select>
-                                </FormControl>
-                            </Grid>
-                        </Grid>
+                        )}
                     </Paper>
 
-                    {/* Schedule Section */}
+                    {/* Schedule Section
                     <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 2, border: '1px solid #e0e0e0' }}>
                         <Typography variant="h6" fontWeight="600" sx={{ mb: 3, display: 'flex', alignItems: 'center', color: '#1976d2' }}>
                             <CalendarIcon sx={{ mr: 1, color: '#1976d2' }} />
@@ -808,10 +962,10 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                                 />
                             </Grid>
                         </Grid>
-                    </Paper>
+                    </Paper> */}
 
                     {/* Worker Selection Section */}
-                    <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 2, border: '1px solid #e0e0e0' }}>
+                    {/* <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 2, border: '1px solid #e0e0e0' }}>
                         <Typography variant="h6" fontWeight="600" sx={{ mb: 3, display: 'flex', alignItems: 'center', color: '#1976d2' }}>
                             <PersonIcon sx={{ mr: 1, color: '#1976d2' }} />
                             작업자 선택
@@ -887,50 +1041,13 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, isEdit = false
                                                         {selectedWorker.address?.full || '주소 정보 없음'}
                                                     </Typography>
                                                 </Grid>
-                                                <Grid size={{ xs: 12, sm: 6 }}>
-                                                    {selectedWorker.type === 'driver' ? (
-                                                        <>
-                                                            <Typography
-                                                                variant="body2"
-                                                                sx={{ display: 'flex', alignItems: 'center', mb: 1 }}
-                                                            >
-                                                                <ShippingIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                                                                차량 유형: {(selectedWorker as Driver).driverInfo?.vehicleType || '정보 없음'}
-                                                            </Typography>
-                                                            <Typography
-                                                                variant="body2"
-                                                                sx={{ display: 'flex', alignItems: 'center' }}
-                                                            >
-                                                                <InfoIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                                                                차량 번호: {(selectedWorker as Driver).driverInfo?.vehicleNumber || '정보 없음'}
-                                                            </Typography>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Typography
-                                                                variant="body2"
-                                                                sx={{ display: 'flex', alignItems: 'center', mb: 1 }}
-                                                            >
-                                                                <CategoryIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                                                                작업 유형: {(selectedWorker as Foreman).foremanInfo?.category || '정보 없음'}
-                                                            </Typography>
-                                                            <Typography
-                                                                variant="body2"
-                                                                sx={{ display: 'flex', alignItems: 'center' }}
-                                                            >
-                                                                <MoneyIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                                                                시간당 단가: {(selectedWorker as Foreman).foremanInfo?.rates?.hourly?.toLocaleString() || '정보 없음'}원
-                                                            </Typography>
-                                                        </>
-                                                    )}
-                                                </Grid>
                                             </Grid>
                                         </CardContent>
                                     </Card>
                                 </Grid>
                             )}
                         </Grid>
-                    </Paper>
+                    </Paper> */}
 
                     {/* Fields Selection Section */}
                     <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 2, border: '1px solid #e0e0e0' }}>

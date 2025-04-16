@@ -30,7 +30,9 @@ import {
     Dialog,
     DialogTitle,
     Snackbar,
-    Alert
+    Alert,
+    Stack,
+    Badge
 } from '@mui/material';
 import {
     Search as SearchIcon,
@@ -44,7 +46,8 @@ import {
     LocationOn as LocationIcon,
     Person as PersonIcon,
     AssignmentTurnedIn as CheckIcon,
-    Flag as FlagIcon
+    Flag as FlagIcon,
+    Category as CategoryIcon
 } from '@mui/icons-material';
 import { Foreman, Schedule } from '@/types';
 import { useSchedules } from '@/hooks/useSchedules';
@@ -53,6 +56,7 @@ import { ko } from 'date-fns/locale';
 import { getWorkers } from '@/services/firebase/workerService';
 import { updateSchedule } from '@/services/firebase/scheduleService';
 import { Worker as AppWorker, Driver } from '@/types';
+import { getForemanCategories } from '@/services/firebase/workerService';
 
 interface ScheduleListProps {
     farmerId?: string;
@@ -60,6 +64,8 @@ interface ScheduleListProps {
     fieldId?: string;
     showCalendarView?: boolean;
 }
+
+type ScheduleStage = "예정" | "준비중" | "진행중" | "완료" | "취소";
 
 const ScheduleList: React.FC<ScheduleListProps> = ({
     farmerId,
@@ -75,7 +81,8 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
         isLoading,
         error,
         deleteSchedule,
-        updateStage
+        updateStage,
+        refreshSchedules
     } = useSchedules(farmerId, workerId, fieldId);
 
     // 상태 변수들
@@ -96,12 +103,40 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
     const [workerDialogOpen, setWorkerDialogOpen] = useState(false);
     const [completionDialogOpen, setCompletionDialogOpen] = useState(false);
     const [selectedScheduleForStage, setSelectedScheduleForStage] = useState<Schedule | null>(null);
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
     const [selectedWorker, setSelectedWorker] = useState('');
     const [availableWorkers, setAvailableWorkers] = useState<AppWorker[]>([]);
-    const [completionData, setCompletionData] = useState({
-        quantity: 0,
-        amount: 0,
+
+    // 카테고리 상태 관리
+    const [categories, setCategories] = useState<Array<{ id: string, name: string }>>([]);
+    const [categoryStageDialog, setCategoryStageDialog] = useState(false);
+    const [selectedStage, setSelectedStage] = useState<string>('');
+
+    // 알림 메시지 상태
+    const [alertOpen, setAlertOpen] = useState(false);
+    const [alertMessage, setAlertMessage] = useState<{
+        severity: 'success' | 'info' | 'warning' | 'error',
+        message: string
+    }>({
+        severity: 'info',
+        message: ''
     });
+
+    // 카테고리 로드
+    useEffect(() => {
+        const loadCategories = async () => {
+            try {
+                const categoriesData = await getForemanCategories();
+                if (Array.isArray(categoriesData)) {
+                    setCategories(categoriesData.map(name => ({ id: name, name })));
+                }
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        };
+
+        loadCategories();
+    }, []);
 
     // 필터링 효과
     useEffect(() => {
@@ -116,14 +151,20 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
             );
         }
 
-        // 유형 필터링
+        // 카테고리 유형 필터링
         if (typeFilter) {
-            result = result.filter(schedule => schedule.type === typeFilter);
+            result = result.filter(schedule =>
+                schedule.categorySchedules &&
+                schedule.categorySchedules.some(cs => cs.categoryId === typeFilter)
+            );
         }
 
-        // 상태 필터링
+        // 작업 상태 필터링
         if (stageFilter) {
-            result = result.filter(schedule => schedule.stage.current === stageFilter);
+            result = result.filter(schedule =>
+                schedule.categorySchedules &&
+                schedule.categorySchedules.some(cs => cs.stage === stageFilter)
+            );
         }
 
         setFilteredSchedules(result);
@@ -173,45 +214,36 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
             try {
                 await deleteSchedule(selectedScheduleId);
                 // 삭제 성공 메시지
+                setAlertMessage({
+                    severity: 'success',
+                    message: '작업 일정이 삭제되었습니다.'
+                });
+                setAlertOpen(true);
             } catch (error) {
                 // 오류 처리
                 console.error('Error deleting schedule:', error);
+                setAlertMessage({
+                    severity: 'error',
+                    message: '작업 일정 삭제 중 오류가 발생했습니다.'
+                });
+                setAlertOpen(true);
             }
         }
         handleMenuClose();
     };
 
-    // 알림 메시지 상태 추가
-    const [alertOpen, setAlertOpen] = useState(false);
-    const [alertMessage, setAlertMessage] = useState<{
-        severity: 'success' | 'info' | 'warning' | 'error',
-        message: string
-    }>({
-        severity: 'info',
-        message: ''
-    });
-
-
     // 작업 유형별 칩 색상
-    const getTypeColor = (type: string) => {
-        switch (type) {
-            case 'pulling': return 'primary';
-            case 'cutting': return 'secondary';
-            case 'packing': return 'success';
-            case 'transport': return 'warning';
-            default: return 'default';
-        }
-    };
+    const getTypeColor = (categoryId: string) => {
+        // 간단한 해시 함수로 카테고리 ID를 색상으로 매핑
+        const colorMap: Record<string, 'primary' | 'secondary' | 'success' | 'warning' | 'info'> = {
+            '뽑기': 'primary',
+            '자르기': 'secondary',
+            '포장': 'success',
+            '운송': 'warning',
+            '수확': 'info'
+        };
 
-    // 작업 유형별 표시 텍스트
-    const getTypeLabel = (type: string) => {
-        switch (type) {
-            case 'pulling': return '뽑기';
-            case 'cutting': return '자르기';
-            case 'packing': return '포장';
-            case 'transport': return '운송';
-            default: return type;
-        }
+        return colorMap[categoryId] || 'default';
     };
 
     // 작업 상태별 칩 색상
@@ -226,139 +258,162 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
         }
     };
 
-    // 작업자 가져오기 함수 개선
-    const fetchAvailableWorkers = async (schedule: Schedule) => {
+    // 카테고리별 작업 상태 업데이트 핸들러
+    const handleCategoryStageUpdate = async (schedule: Schedule, categoryId: string, newStage: string) => {
         try {
-            // 작업 유형이 없으면 먼저 확인
-            if (!schedule.type) {
-                throw new Error('작업 유형이 지정되지 않았습니다.');
-            }
+            const updatedCategorySchedules = schedule.categorySchedules?.map(cs =>
+                cs.categoryId === categoryId
+                    ? { ...cs, stage: newStage as ScheduleStage }
+                    : cs
+            ) || [];
 
-            // getWorkers 함수는 모든 작업자를 가져옴
-            const workers = await getWorkers();
+            await updateSchedule(schedule.id, {
+                categorySchedules: updatedCategorySchedules
+            });
 
-            // 작업 유형에 맞는 작업자만 필터링
-            const filtered = workers.filter(worker => {
-                // 운송 작업은 운송기사만 가능
-                if (schedule.type === 'transport' && worker.type === 'driver') {
-                    return true;
-                }
+            const categoryName = schedule.categorySchedules?.find(cs => cs.categoryId === categoryId)?.categoryName || categoryId;
 
-                // 나머지 작업(뽑기, 자르기, 포장)은 작업반장만 가능
-                if (schedule.type !== 'transport' && worker.type === 'foreman') {
+            setAlertMessage({
+                severity: 'success',
+                message: `${categoryName} 작업이 ${newStage}(으)로 변경되었습니다.`
+            });
+            setAlertOpen(true);
+
+            await refreshSchedules();
+        } catch (error) {
+            console.error('Error updating category stage:', error);
+            setAlertMessage({
+                severity: 'error',
+                message: '작업 상태 변경 중 오류가 발생했습니다.'
+            });
+            setAlertOpen(true);
+        }
+    };
+
+    // 작업 상태 다이얼로그 열기
+    const openCategoryStageDialog = (schedule: Schedule, categoryId: string) => {
+        setSelectedScheduleForStage(schedule);
+        setSelectedCategoryId(categoryId);
+
+        const currentStage = schedule.categorySchedules?.find(cs => cs.categoryId === categoryId)?.stage || '예정';
+        setSelectedStage(currentStage);
+
+        setCategoryStageDialog(true);
+    };
+
+    // 작업자 가져오기 함수
+    const fetchAvailableWorkers = async (categoryId: string) => {
+        try {
+            const workers = await getWorkers() as AppWorker[];
+            return workers.filter(worker => {
+                if (worker.type === 'foreman') {
                     const foreman = worker as Foreman;
-
-                    // 각 작업 유형별 카테고리 필터링
-                    switch (schedule.type) {
-                        case 'pulling':
-                            return foreman.foremanInfo.category.includes('뽑기');
-                        case 'cutting':
-                            return foreman.foremanInfo.category.includes('자르기');
-                        case 'packing':
-                            return foreman.foremanInfo.category.includes('포장');
-                        default:
-                            return false;
+                    if (Array.isArray(foreman.foremanInfo.category.name)) {
+                        return foreman.foremanInfo.category.name.includes(categoryId);
                     }
                 }
-
                 return false;
             });
-
-            // 필터링된 작업자가 없는 경우 처리
-            if (filtered.length === 0) {
-                console.warn(`'${schedule.type}' 유형에 맞는 작업자가 없습니다.`);
-            }
-
-            return filtered;
         } catch (error) {
             console.error('Error fetching workers:', error);
-            throw error; // 에러를 던져서 호출자가 처리할 수 있게 함
+            throw error;
         }
     };
 
-
-    // 작업 상태 업데이트 핸들러 수정
-    // 작업 상태 업데이트 핸들러 수정
-    const handleUpdateStage = async (schedule: Schedule, newStage: string) => {
-        // 작업자가 없고 예정 -> 준비중 변경인 경우
-        if (!schedule.workerId && schedule.stage.current === '예정' && newStage === '준비중') {
-            try {
-                // 작업 스케줄을 전달하여 작업 유형에 맞는 작업자 목록 가져오기
-                const workers = await fetchAvailableWorkers(schedule);
-
-                if (workers.length === 0) {
-                    // 적합한 작업자가 없는 경우 알림
-                    setAlertMessage({
-                        severity: 'warning',
-                        message: `'${getTypeLabel(schedule.type)}' 유형에 맞는 작업자가 없습니다. 먼저 작업자를 등록해주세요.`
-                    });
-                    setAlertOpen(true);
-                    return;
-                }
-
-                // 작업자 선택 다이얼로그 표시
-                setAvailableWorkers(workers);
-                setSelectedScheduleForStage(schedule);
-                setWorkerDialogOpen(true);
-            } catch (error) {
-                console.error('작업자 목록을 가져오는 중 오류가 발생했습니다:', error);
+    // 작업자 선택 다이얼로그 열기
+    const openWorkerSelectionDialog = async (schedule: Schedule, categoryId: string) => {
+        try {
+            const workers = await fetchAvailableWorkers(categoryId);
+            if (workers.length === 0) {
                 setAlertMessage({
-                    severity: 'error',
-                    message: '작업자 목록을 불러오는 데 실패했습니다. 작업 유형을 확인해주세요.'
+                    severity: 'warning',
+                    message: `'${categoryId}' 유형에 맞는 작업자가 없습니다. 먼저 작업자를 등록해주세요.`
                 });
                 setAlertOpen(true);
+                return;
             }
-            return;
+
+            setAvailableWorkers(workers);
+            setSelectedScheduleForStage(schedule);
+            setSelectedCategoryId(categoryId);
+            setWorkerDialogOpen(true);
+        } catch (error) {
+            console.error('Error loading workers:', error);
+            setAlertMessage({
+                severity: 'error',
+                message: '작업자 목록을 불러오는 데 실패했습니다.'
+            });
+            setAlertOpen(true);
         }
+    };
+
+    // 작업자 선택 처리
+    const handleWorkerSelect = async () => {
+        if (!selectedScheduleForStage || !selectedCategoryId || !selectedWorker) return;
 
         try {
-            await updateStage(schedule.id, newStage);
-            // 성공 메시지
+            const updatedCategorySchedules = selectedScheduleForStage.categorySchedules?.map(cs =>
+                cs.categoryId === selectedCategoryId
+                    ? {
+                        ...cs,
+                        workerId: selectedWorker,
+                        workerName: availableWorkers.find(w => w.id === selectedWorker)?.name || ''
+                    }
+                    : cs
+            ) || [];
+
+            await updateSchedule(selectedScheduleForStage.id, {
+                categorySchedules: updatedCategorySchedules
+            });
+
+            setAlertMessage({
+                severity: 'success',
+                message: '작업자가 성공적으로 할당되었습니다.'
+            });
+            setAlertOpen(true);
+
+            setWorkerDialogOpen(false);
+            setSelectedWorker('');
+            await refreshSchedules();
+        } catch (error) {
+            console.error('Error assigning worker:', error);
+            setAlertMessage({
+                severity: 'error',
+                message: '작업자 할당 중 오류가 발생했습니다.'
+            });
+            setAlertOpen(true);
+        }
+    };
+
+    // 작업 상태 변경 처리
+    const handleStageChange = async () => {
+        if (!selectedScheduleForStage || !selectedCategoryId || !selectedStage) return;
+
+        try {
+            // 작업 상태가 '예정'에서 '준비중'으로 변경될 때 작업자 확인
+            const categorySchedule = selectedScheduleForStage.categorySchedules?.find(cs =>
+                cs.categoryId === selectedCategoryId
+            );
+
+            const isChangingToPreparing = categorySchedule?.stage === '예정' && selectedStage === '준비중';
+
+            if (isChangingToPreparing && !categorySchedule?.workerId) {
+                // 작업자 선택 다이얼로그로 전환
+                setCategoryStageDialog(false);
+                openWorkerSelectionDialog(selectedScheduleForStage, selectedCategoryId);
+                return;
+            }
+
+            // 일반적인 상태 변경 처리
+            await handleCategoryStageUpdate(selectedScheduleForStage, selectedCategoryId, selectedStage);
+            setCategoryStageDialog(false);
         } catch (error) {
             console.error('Error updating stage:', error);
-        }
-    };
-
-    // 작업자 선택 후 상태 업데이트
-    const handleWorkerSelect = async () => {
-        if (!selectedScheduleForStage || !selectedWorker) return;
-
-        try {
-            // 작업자 업데이트
-            await updateSchedule(selectedScheduleForStage.id, {
-                workerId: selectedWorker
+            setAlertMessage({
+                severity: 'error',
+                message: '작업 상태 변경 중 오류가 발생했습니다.'
             });
-            // 상태 업데이트
-            await updateStage(selectedScheduleForStage.id, '준비중');
-            // 다이얼로그 닫기
-            setWorkerDialogOpen(false);
-            setSelectedScheduleForStage(null);
-            setSelectedWorker('');
-        } catch (error) {
-            console.error('Error updating worker and stage:', error);
-        }
-    };
-
-    // 완료 정보 제출 후 상태 업데이트
-    const handleCompletionSubmit = async () => {
-        if (!selectedScheduleForStage) return;
-
-        try {
-            // 작업량과 작업비 업데이트
-            await updateSchedule(selectedScheduleForStage.id, {
-                rateInfo: {
-                    ...selectedScheduleForStage.rateInfo,
-                    quantity: completionData.quantity,
-                    negotiatedRate: completionData.amount
-                }
-            });
-            // 상태 업데이트
-            await updateStage(selectedScheduleForStage.id, '완료');
-            // 다이얼로그 닫기
-            setCompletionDialogOpen(false);
-            setSelectedScheduleForStage(null);
-        } catch (error) {
-            console.error('Error updating completion data:', error);
+            setAlertOpen(true);
         }
     };
 
@@ -422,17 +477,18 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
                         </Grid>
                         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                             <FormControl fullWidth size="small">
-                                <InputLabel>작업 유형</InputLabel>
+                                <InputLabel>작업 카테고리</InputLabel>
                                 <Select
                                     value={typeFilter}
-                                    label="작업 유형"
+                                    label="작업 카테고리"
                                     onChange={(e) => setTypeFilter(e.target.value)}
                                 >
                                     <MenuItem value="">전체</MenuItem>
-                                    <MenuItem value="pulling">뽑기</MenuItem>
-                                    <MenuItem value="cutting">자르기</MenuItem>
-                                    <MenuItem value="packing">포장</MenuItem>
-                                    <MenuItem value="transport">운송</MenuItem>
+                                    {categories.map(category => (
+                                        <MenuItem key={category.id} value={category.id}>
+                                            {category.name}
+                                        </MenuItem>
+                                    ))}
                                 </Select>
                             </FormControl>
                         </Grid>
@@ -479,23 +535,16 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
             </Box>
 
             {/* 결과 없음 */}
-            {filteredSchedules.length === 0 && (
+            {!isLoading && filteredSchedules.length === 0 && (
                 <Box sx={{ textAlign: 'center', py: 4 }}>
                     <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-                        {schedules.length === 0
-                            ? '등록된 작업 일정이 없습니다.'
-                            : '검색 결과가 없습니다.'}
+                        등록된 작업 일정이 없습니다.
                     </Typography>
                     <Button
                         variant="contained"
                         color="primary"
                         startIcon={<AddIcon />}
-                        onClick={() => router.push(
-                            farmerId ? `/schedules/add?farmerId=${farmerId}` :
-                                workerId ? `/schedules/add?workerId=${workerId}` :
-                                    fieldId ? `/schedules/add?fieldId=${fieldId}` :
-                                        '/schedules/add'
-                        )}
+                        onClick={() => router.push('/schedules/add')}
                     >
                         작업 일정 등록
                     </Button>
@@ -508,106 +557,82 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
                     {paginatedSchedules.map((schedule) => (
                         <Grid size={{ xs: 12, sm: 6, md: 4 }} key={schedule.id}>
                             <Card>
-                                <CardContent>
+                                <CardContent sx={{ '&:last-child': { pb: 2 } }}>
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                            <Chip
-                                                size="small"
-                                                label={getTypeLabel(schedule.type)}
-                                                color={getTypeColor(schedule.type)}
-                                                sx={{ mb: 1, mr: 1 }}
-                                            />
-                                            {schedule.additionalInfo?.flagNumber && (
-                                                <Chip
-                                                    size="small"
-                                                    icon={<FlagIcon />}
-                                                    label={`#${schedule.additionalInfo.flagNumber}`}
-                                                    color="default"
-                                                    sx={{ mb: 1 }}
-                                                />
-                                            )}
-                                        </Box>
+                                        <Typography variant="h6" noWrap sx={{ maxWidth: '80%' }}>
+                                            {schedule.fieldName || '농지 정보 없음'}
+                                        </Typography>
                                         <IconButton
                                             size="small"
-                                            sx={{
-                                                opacity: 0,
-                                                transition: 'opacity 0.2s ease-in-out',
-                                            }}
-                                            className="actionButton"
                                             onClick={(e) => handleMenuOpen(e, schedule.id)}
                                         >
                                             <MoreVertIcon />
                                         </IconButton>
                                     </Box>
 
-                                    <Box sx={{ mb: 1 }}>
-                                        <Typography variant="body2" color="text.secondary">
-                                            작업 일시
-                                        </Typography>
-                                        <Typography variant="body1" fontWeight="bold">
-                                            {schedule.scheduledDate?.start && format(schedule.scheduledDate.start, 'yyyy-MM-dd HH:mm', { locale: ko })}
-                                        </Typography>
+                                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                                        {schedule.farmerName || '농가 정보 없음'}
+                                    </Typography>
+
+                                    <Typography variant="body2" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+                                        <LocationIcon fontSize="small" sx={{ mr: 0.5, color: 'text.secondary' }} />
+                                        {schedule.fieldAddress || '주소 정보 없음'}
+                                    </Typography>
+
+                                    {/* 카테고리 칩 표시 */}
+                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
+                                        {schedule.categorySchedules?.map((cs, index) => (
+                                            <Chip
+                                                key={`${schedule.id}-${cs.categoryId}-${index}`}
+                                                size="small"
+                                                label={cs.categoryName}
+                                                color={getTypeColor(cs.categoryName)}
+                                            />
+                                        ))}
                                     </Box>
 
-                                    <Box sx={{ mb: 1 }}>
-                                        <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
-                                            <PersonIcon fontSize="small" sx={{ mr: 0.5 }} />
-                                            작업자
-                                        </Typography>
-                                        <Typography variant="body1">
-                                            {schedule.workerName || '배정 안됨'}
-                                        </Typography>
-                                    </Box>
+                                    <Divider sx={{ mb: 2 }} />
 
-                                    <Box sx={{ mb: 1 }}>
-                                        <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
-                                            <LocationIcon fontSize="small" sx={{ mr: 0.5 }} />
-                                            작업 위치
-                                        </Typography>
-                                        <Typography variant="body1" noWrap>
-                                            {schedule.fieldName ? `${schedule.fieldName} (${schedule.farmerName})` : '정보 없음'}
-                                        </Typography>
-                                    </Box>
-
-                                    <Divider sx={{ my: 1 }} />
-
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <Chip
-                                            size="small"
-                                            label={schedule.stage.current}
-                                            color={getStageColor(schedule.stage.current)}
-                                        />
-                                        {schedule.stage.current !== '완료' && schedule.stage.current !== '취소' && (
+                                    {/* 카테고리별 상태 표시 */}
+                                    {schedule.categorySchedules?.map((cs, index) => (
+                                        <Box
+                                            key={`status-${schedule.id}-${cs.categoryId}-${index}`}
+                                            sx={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                mb: 1,
+                                                p: 1,
+                                                bgcolor: 'background.default',
+                                                borderRadius: 1
+                                            }}
+                                        >
+                                            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                                <Typography variant="body2" fontWeight="bold">
+                                                    {cs.categoryName}
+                                                </Typography>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    {cs.workerName ? `작업자: ${cs.workerName}` : '작업자 미배정'}
+                                                </Typography>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    {cs.scheduledDate?.start ? format(new Date(cs.scheduledDate.start), 'yyyy-MM-dd HH:mm') : '일정 미정'}
+                                                </Typography>
+                                            </Box>
                                             <Button
                                                 size="small"
-                                                color="primary"
-                                                startIcon={<CheckIcon />}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const nextStage =
-                                                        schedule.stage.current === '예정' ? '준비중' :
-                                                            schedule.stage.current === '준비중' ? '진행중' : '완료';
-                                                    handleUpdateStage(schedule, nextStage);
-                                                }}
+                                                variant="outlined"
+                                                color={getStageColor(cs.stage) as 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info'}
+                                                onClick={() => openCategoryStageDialog(schedule, cs.categoryId)}
                                             >
-                                                {schedule.stage.current === '예정' ? '준비중' :
-                                                    schedule.stage.current === '준비중' ? '진행중' : '완료'} 처리
+                                                {cs.stage}
                                             </Button>
-                                        )}
-                                    </Box>
+                                        </Box>
+                                    ))}
                                 </CardContent>
                             </Card>
                         </Grid>
                     ))}
                 </Grid>
-            )}
-
-            {/* 캘린더 뷰 */}
-            {viewMode === 'calendar' && filteredSchedules.length > 0 && (
-                <Box>
-                    {/* 캘린더 컴포넌트는 별도로 구현 필요 */}
-                    <Typography variant="body1">캘린더 뷰는 ScheduleCalendar 컴포넌트에서 구현합니다.</Typography>
-                </Box>
             )}
 
             {/* 페이지네이션 */}
@@ -622,12 +647,46 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
                 </Box>
             )}
 
+            {/* 카테고리 상태 변경 다이얼로그 */}
+            <Dialog open={categoryStageDialog} onClose={() => setCategoryStageDialog(false)} maxWidth="xs" fullWidth>
+                <DialogTitle>작업 상태 변경</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" gutterBottom>
+                        {selectedScheduleForStage?.categorySchedules?.find(cs => cs.categoryId === selectedCategoryId)?.categoryName} 작업의 상태를 변경합니다.
+                    </Typography>
+
+                    <FormControl fullWidth sx={{ mt: 2 }}>
+                        <InputLabel>작업 상태</InputLabel>
+                        <Select
+                            value={selectedStage}
+                            onChange={(e) => setSelectedStage(e.target.value as string)}
+                            label="작업 상태"
+                        >
+                            <MenuItem value="예정">예정</MenuItem>
+                            <MenuItem value="준비중">준비중</MenuItem>
+                            <MenuItem value="진행중">진행중</MenuItem>
+                            <MenuItem value="완료">완료</MenuItem>
+                            <MenuItem value="취소">취소</MenuItem>
+                        </Select>
+                    </FormControl>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setCategoryStageDialog(false)}>취소</Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleStageChange}
+                    >
+                        변경하기
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
             {/* 작업자 선택 다이얼로그 */}
             <Dialog open={workerDialogOpen} onClose={() => setWorkerDialogOpen(false)} maxWidth="sm" fullWidth>
                 <DialogTitle>작업자 선택</DialogTitle>
                 <DialogContent>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        작업을 진행하려면 작업자를 선택해야 합니다.
+                    <Typography variant="body2" gutterBottom>
+                        {selectedScheduleForStage?.categorySchedules?.find(cs => cs.categoryId === selectedCategoryId)?.categoryName} 작업의 담당자를 선택하세요.
                     </Typography>
 
                     <FormControl fullWidth sx={{ mt: 2 }}>
@@ -640,8 +699,6 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
                             {availableWorkers.map((worker) => (
                                 <MenuItem key={worker.id} value={worker.id}>
                                     {worker.name}
-                                    {worker.type === 'foreman' && ` (${(worker as Foreman).foremanInfo.category})`}
-                                    {worker.type === 'driver' && ` (${(worker as Driver).driverInfo.vehicleType})`}
                                 </MenuItem>
                             ))}
                         </Select>
@@ -658,77 +715,6 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
                     </Button>
                 </DialogActions>
             </Dialog>
-
-            {/* 작업 완료 정보 다이얼로그 */}
-            <Dialog open={completionDialogOpen} onClose={() => setCompletionDialogOpen(false)} maxWidth="sm" fullWidth>
-                <DialogTitle>작업 완료 정보</DialogTitle>
-                <DialogContent>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        작업 완료를 위해 다음 정보를 입력해주세요.
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{ mt: 1 }}>
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="작업량"
-                                type="number"
-                                value={completionData.quantity}
-                                onChange={(e) => setCompletionData({
-                                    ...completionData,
-                                    quantity: Number(e.target.value)
-                                })}
-                                InputProps={{
-                                    endAdornment: <InputAdornment position="end">
-                                        {selectedScheduleForStage?.rateInfo?.unit || '개'}
-                                    </InputAdornment>,
-                                }}
-                            />
-                        </Grid>
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="작업비"
-                                type="number"
-                                value={completionData.amount}
-                                onChange={(e) => setCompletionData({
-                                    ...completionData,
-                                    amount: Number(e.target.value)
-                                })}
-                                InputProps={{
-                                    endAdornment: <InputAdornment position="end">원</InputAdornment>,
-                                }}
-                            />
-                        </Grid>
-                    </Grid>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setCompletionDialogOpen(false)}>취소</Button>
-                    <Button
-                        variant="contained"
-                        onClick={handleCompletionSubmit}
-                    >
-                        완료
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            {/* 알림 메시지 */}
-            <Snackbar
-                open={alertOpen}
-                autoHideDuration={5000}
-                onClose={() => setAlertOpen(false)}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-            >
-                <Alert
-                    onClose={() => setAlertOpen(false)}
-                    severity={alertMessage.severity}
-                    variant="filled"
-                    sx={{ width: '100%' }}
-                >
-                    {alertMessage.message}
-                </Alert>
-            </Snackbar>
 
             {/* 컨텍스트 메뉴 */}
             <Menu
@@ -759,16 +745,25 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
                     <ListItemText>삭제</ListItemText>
                 </MenuItem>
             </Menu>
+
+            {/* 알림 메시지 */}
+            <Snackbar
+                open={alertOpen}
+                autoHideDuration={5000}
+                onClose={() => setAlertOpen(false)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert
+                    onClose={() => setAlertOpen(false)}
+                    severity={alertMessage.severity}
+                    variant="filled"
+                    sx={{ width: '100%' }}
+                >
+                    {alertMessage.message}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 };
 
-export default ScheduleList;
-
-function setAlertMessage(arg0: { severity: string; message: string; }) {
-    throw new Error('Function not implemented.');
-}
-function setAlertOpen(arg0: boolean) {
-    throw new Error('Function not implemented.');
-}
-
+export default ScheduleList

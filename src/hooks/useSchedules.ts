@@ -12,9 +12,10 @@ import {
     getSchedulesByFieldId,
     updateScheduleStage
 } from '@/services/firebase/scheduleService';
-import { Schedule } from '@/types';
+import { Schedule, Worker, Foreman } from '@/types';
 import { where } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
+import { getWorkers } from '@/services/firebase/workerService';
 
 // 작업 일정 데이터를 위한 커스텀 훅
 export function useSchedules(farmerId?: string, workerId?: string, fieldId?: string, typeFilter?: string) {
@@ -58,6 +59,32 @@ export function useSchedules(farmerId?: string, workerId?: string, fieldId?: str
             return await getSchedulesByFarmerId(fId);
         } catch (error) {
             console.error('Error fetching schedules by farmer:', error);
+            throw error;
+        }
+    };
+
+    // 카테고리별 작업자 정보 조회 함수
+    // src/hooks/useSchedules.ts의 fetchWorkersByCategory 함수 수정
+    const fetchWorkersByCategory = async (categoryName: string): Promise<Worker[]> => {
+        try {
+            const workers = await getWorkers() as Worker[];
+            return workers.filter(worker => {
+                if (worker.type === 'foreman') {
+                    const foreman = worker as Foreman;
+                    // 타입 구조에 맞게 수정
+                    if (Array.isArray(foreman.foremanInfo.category.name)) {
+                        return foreman.foremanInfo.category.name.includes(categoryName);
+                    }
+                    // 타입이 문자열인 경우 호환성 유지
+                    if (typeof foreman.foremanInfo.category === 'string') {
+                        return foreman.foremanInfo.category === categoryName;
+                    }
+                    return false;
+                }
+                return false;
+            });
+        } catch (error) {
+            console.error('Error fetching workers by category:', error);
             throw error;
         }
     };
@@ -112,7 +139,8 @@ export function useSchedules(farmerId?: string, workerId?: string, fieldId?: str
         fetchSchedulesByFarmer,
         fetchSchedulesByWorker,
         fetchSchedulesByField,
-        updateStage
+        updateStage,
+        fetchWorkersByCategory
     };
 }
 

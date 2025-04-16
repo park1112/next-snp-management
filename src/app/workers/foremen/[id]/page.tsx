@@ -277,9 +277,14 @@ export default function ForemanDetailPage() {
                                             </Box>
                                         }
                                         primaryTypographyProps={{ color: 'text.secondary', variant: 'body2' }}
-                                        secondaryTypographyProps={{ color: 'text.primary', variant: 'body1' }}
+                                        secondaryTypographyProps={{
+                                            component: 'div', // 기본 <p> 대신 <div>로 변경
+                                            color: 'text.primary',
+                                            variant: 'body1'
+                                        }}
                                     />
                                 </ListItem>
+
 
                                 {foreman.personalId && (
                                     <ListItem sx={{ px: 0, py: 1 }}>
@@ -347,7 +352,8 @@ export default function ForemanDetailPage() {
                                             secondaryTypographyProps={{
                                                 color: 'text.primary',
                                                 variant: 'body1',
-                                                fontWeight: 'medium'
+                                                fontWeight: 'medium',
+                                                component: 'div', // 기본 <p> 대신 <div>로 변경
                                             }}
                                         />
                                     </ListItem>
