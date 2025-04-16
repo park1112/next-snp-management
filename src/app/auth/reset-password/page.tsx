@@ -17,7 +17,6 @@ import {
 import { Email, ArrowBack } from '@mui/icons-material';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../../../firebase/firebaseClient';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function ResetPasswordPage() {
@@ -25,7 +24,6 @@ export default function ResetPasswordPage() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
     const [loading, setLoading] = useState(false);
-    const router = useRouter();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -43,14 +41,16 @@ export default function ResetPasswordPage() {
             setLoading(true);
             await sendPasswordResetEmail(auth, email);
             setSuccess(true);
-        } catch (err: any) {
+        } catch (err: unknown) {
             let errorMessage = '비밀번호 재설정 이메일 전송에 실패했습니다.';
-            if (err.code === 'auth/user-not-found') {
-                errorMessage = '해당 이메일로 가입된 계정을 찾을 수 없습니다.';
-            } else if (err.code === 'auth/invalid-email') {
-                errorMessage = '유효하지 않은 이메일 형식입니다.';
-            } else if (err.code === 'auth/too-many-requests') {
-                errorMessage = '너무 많은 요청이 있었습니다. 잠시 후 다시 시도해주세요.';
+            if (err instanceof Error && 'code' in err) {
+                if (err.code === 'auth/user-not-found') {
+                    errorMessage = '해당 이메일로 가입된 계정을 찾을 수 없습니다.';
+                } else if (err.code === 'auth/invalid-email') {
+                    errorMessage = '유효하지 않은 이메일 형식입니다.';
+                } else if (err.code === 'auth/too-many-requests') {
+                    errorMessage = '너무 많은 요청이 있었습니다. 잠시 후 다시 시도해주세요.';
+                }
             }
             setError(errorMessage);
         } finally {

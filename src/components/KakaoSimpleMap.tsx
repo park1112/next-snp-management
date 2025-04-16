@@ -4,6 +4,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, CircularProgress } from '@mui/material';
 
+interface KakaoAddressResult {
+    x: string;
+    y: string;
+}
+
 interface KakaoSimpleMapProps {
     address: string;
     latitude?: number;
@@ -14,7 +19,7 @@ interface KakaoSimpleMapProps {
 const KakaoSimpleMap: React.FC<KakaoSimpleMapProps> = ({ address, latitude, longitude, zoom = 3 }) => {
     const mapRef = useRef<HTMLDivElement>(null);
     const [mapLoaded, setMapLoaded] = useState(false);
-    const [currentZoom, setCurrentZoom] = useState<number>(zoom);
+    const currentZoom = zoom;
     const apiKey = process.env.NEXT_PUBLIC_KAKAO_MAPS_API_KEY;
 
     // Kakao Maps API 스크립트 로드
@@ -57,8 +62,9 @@ const KakaoSimpleMap: React.FC<KakaoSimpleMapProps> = ({ address, latitude, long
             initMap(centerPosition);
         } else {
             // 위도/경도가 없으면 주소를 기반으로 좌표 변환
+            // 좌표 변환 부분 수정
             const geocoder = new kakao.maps.services.Geocoder();
-            geocoder.addressSearch(address, (results: any[], status: any) => {
+            geocoder.addressSearch(address, (results: KakaoAddressResult[], status: string) => {
                 if (status === kakao.maps.services.Status.OK && results.length > 0) {
                     const coords = new kakao.maps.LatLng(parseFloat(results[0].y), parseFloat(results[0].x));
                     centerPosition = coords;
@@ -69,19 +75,17 @@ const KakaoSimpleMap: React.FC<KakaoSimpleMapProps> = ({ address, latitude, long
             });
         }
 
-        function initMap(center: any) {
+        function initMap(center: kakao.maps.LatLng) {
             const mapOptions = {
                 center,
                 level: currentZoom,
                 mapTypeId: kakao.maps.MapTypeId.HYBRID,
             };
-            const map = new kakao.maps.Map(mapRef.current, mapOptions);
+            const map = new kakao.maps.Map(mapRef.current as HTMLElement, mapOptions);
             // 마커 추가
             const marker = new kakao.maps.Marker({
                 position: center,
                 map: map,
-                title: address,
-                animation: kakao.maps.Animation ? kakao.maps.Animation.DROP : undefined,
             });
             // 간단한 정보창 추가
             const infowindow = new kakao.maps.InfoWindow({

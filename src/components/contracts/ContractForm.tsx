@@ -13,33 +13,24 @@ import {
     Select,
     Grid,
     Typography,
-    Divider,
     Paper,
     IconButton,
     Tabs,
     Tab,
-    Card,
-    CardContent,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
     Alert,
-    Snackbar,
-    CircularProgress,
     InputAdornment,
     Autocomplete,
-    Chip
+    Snackbar,
+    CircularProgress,
 } from '@mui/material';
 import {
-    Save as SaveIcon,
     ArrowBack as ArrowBackIcon,
-    Add as AddIcon,
-    Remove as RemoveIcon,
-    Person as PersonIcon,
-    Terrain as TerrainIcon,
-    CalendarToday as CalendarIcon,
     AttachMoney as MoneyIcon,
+    Remove as RemoveIcon,
+    Save as SaveIcon,
+    Add as AddIcon,
+
+
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -208,8 +199,8 @@ const ContractForm: React.FC<ContractFormProps> = ({ initialData, isEdit = false
     });
 
     // 농가 및 농지 데이터 로드 (커스텀 훅 사용)
-    const { farmers, isLoading: isFarmersLoading } = useFarmers();
-    const { fields: allFields, isLoading: isFieldsLoading } = useFields();
+    const { farmers } = useFarmers();
+    const { fields: allFields } = useFields();
     // 현재 선택된 농가의 농지만 필터링
     const [fields, setFields] = useState<Field[]>([]);
     useEffect(() => {
@@ -306,7 +297,7 @@ const ContractForm: React.FC<ContractFormProps> = ({ initialData, isEdit = false
     };
 
     // 농가 선택 핸들러
-    const handleFarmerChange = (_event: any, newValue: Farmer | null) => {
+    const handleFarmerChange = (_event: React.SyntheticEvent, newValue: Farmer | null) => {
         if (newValue) {
             setFormData(prev => ({
                 ...prev,
@@ -326,8 +317,9 @@ const ContractForm: React.FC<ContractFormProps> = ({ initialData, isEdit = false
         }
     };
 
+
     // 농지 다중 선택 핸들러 (Autocomplete의 multiple 옵션 사용)
-    const handleFieldsChange = (_event: any, newValue: Field[]) => {
+    const handleFieldsChange = (_event: React.SyntheticEvent, newValue: Field[]) => {
         if (newValue && newValue.length > 0) {
             setFormData(prev => ({
                 ...prev,

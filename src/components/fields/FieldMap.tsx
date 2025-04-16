@@ -94,7 +94,7 @@ const FieldMap: React.FC<FieldMapProps> = ({ initialFields = [] }) => {
     // 기본 지도 중심 (서울시청)
     const DEFAULT_LAT = 37.566;
     const DEFAULT_LNG = 126.978;
-    const DEFAULT_ZOOM = 3;
+
 
     // API Key - 환경 변수 사용
     const apiKey = process.env.NEXT_PUBLIC_KAKAO_MAPS_API_KEY;

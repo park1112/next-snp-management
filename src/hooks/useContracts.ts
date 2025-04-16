@@ -2,9 +2,9 @@
 import { useState, useEffect } from 'react';
 import { useFirestoreCollection } from './useFirestoreCollection';
 import {
-    getContracts,
+
     getContractById,
-    createContract,
+
     updateContract,
     deleteContract,
     getContractsByFarmerId,

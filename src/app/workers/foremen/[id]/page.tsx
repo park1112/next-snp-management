@@ -18,8 +18,6 @@ import {
     List,
     ListItem,
     ListItemText,
-    Card,
-    CardContent,
     Dialog,
     DialogTitle,
     DialogContent,
@@ -40,17 +38,15 @@ import {
     Phone as PhoneIcon,
     Home as HomeIcon,
     Person as PersonIcon,
-    Place as PlaceIcon,
     AccountBalance as BankIcon,
     Engineering as EngineeringIcon,
     Money as MoneyIcon,
-    Event as EventIcon,
     Check as CheckIcon
 } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { useWorker } from '@/hooks/useWorkers';
 import { useWorkCategories } from '@/hooks/common/useWorkCategories';
-import { Worker, Foreman, Category, WorkRate } from '@/types';
+import { Foreman, WorkRate } from '@/types';
 
 interface TabPanelProps {
     children?: React.ReactNode;

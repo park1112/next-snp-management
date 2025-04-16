@@ -1,5 +1,5 @@
 // src/models/schema.ts
-import { Field, Farmer, Foreman, Driver, Schedule, Contract, Payment } from '@/types';
+
 import { z } from 'zod';
 
 // 주소 스키마

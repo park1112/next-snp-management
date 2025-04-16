@@ -24,10 +24,6 @@ import {
     InputAdornment,
     Chip,
     List,
-    ListItem,
-    ListItemText,
-    ListItemSecondaryAction,
-    Tooltip
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -49,8 +45,6 @@ const CategoryDetailPage: React.FC = () => {
         category,
         isLoading,
         error,
-        updateCategory,
-        deleteCategory
     } = useCategory(categoryId);
 
     const {
@@ -134,15 +128,6 @@ const CategoryDetailPage: React.FC = () => {
         }
     };
 
-    // 카테고리 삭제 및 목록 페이지로 이동
-    const handleDeleteCategory = async () => {
-        try {
-            await deleteCategory();
-            router.push('/categories');
-        } catch (error) {
-            console.error('Error deleting category:', error);
-        }
-    };
 
     if (isLoading) {
         return (
@@ -399,7 +384,7 @@ const CategoryDetailPage: React.FC = () => {
                 <DialogTitle>세부 작업 삭제</DialogTitle>
                 <DialogContent>
                     <Typography>
-                        '{rateToDelete?.name}' 작업을 삭제하시겠습니까?
+                        &apos;{rateToDelete?.name}&apos; 작업을 삭제하시겠습니까?
                     </Typography>
                     <Alert severity="warning" sx={{ mt: 2 }}>
                         이 작업을 삭제하면 해당 작업과 연관된 가격 정보도 함께 삭제됩니다.

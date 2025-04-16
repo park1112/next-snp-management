@@ -15,7 +15,7 @@ import {
     Edit as EditIcon,
     Grass as GrassIcon
 } from '@mui/icons-material';
-import { collection, doc, getDocs, addDoc, deleteDoc, updateDoc, serverTimestamp, getFirestore } from 'firebase/firestore';
+import { collection, doc, getDocs, deleteDoc, updateDoc, getFirestore } from 'firebase/firestore';
 import { CropTypeOption, useCropTypes } from '@/hooks/common/useCropTypes';
 
 const CropTypeManagement: React.FC = () => {
@@ -331,7 +331,7 @@ const CropTypeManagement: React.FC = () => {
                 <DialogTitle>작물 유형 삭제</DialogTitle>
                 <DialogContent>
                     <Typography>
-                        '{deleteTargetName}' 작물 유형을 삭제하시겠습니까?
+                        &apos;{deleteTargetName}&apos; 작물 유형을 삭제하시겠습니까?
                     </Typography>
                     <Typography color="error" variant="body2" sx={{ mt: 2 }}>
                         * 주의: 이 작물 유형을 사용하는 농지가 있을 경우 영향을 받을 수 있습니다.

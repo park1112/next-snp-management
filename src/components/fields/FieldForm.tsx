@@ -1,7 +1,7 @@
 // src/components/fields/FieldForm.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Box,
@@ -24,7 +24,7 @@ import {
     Alert,
     Snackbar,
     CircularProgress,
-    Autocomplete,
+
     Tab,
     Tabs,
     useTheme,
@@ -40,13 +40,11 @@ import {
     Terrain as TerrainIcon,
     Home as HomeIcon,
     CalendarToday as CalendarIcon,
-    Category as CategoryIcon,
     Add as AddIcon,
     LocationOn as LocationIcon,
     Save as SaveIcon,
     ArrowBack as ArrowBackIcon,
     Search as SearchIcon,
-    Map as MapIcon,
     Note as NoteIcon,
     Person as PersonIcon,
     Delete as DeleteIcon,
@@ -65,7 +63,6 @@ import { ko } from 'date-fns/locale';
 import { Field, Farmer, DropdownOption, PaymentGroup, LocationItem, stageOptions } from '@/types';
 import { createField, updateField, getCropTypes } from '@/services/firebase/fieldService';
 import { createFarmer, getFarmers, searchFarmers } from '@/services/firebase/farmerService';
-import { useAppContext } from '@/contexts/AppContext';
 import { getLastFlagNumber, updateLastFlagNumber } from '@/services/firebase/firestoreService';
 import BasicInfo from '../form/BasicInfo';
 import { getFirestore, collection, getDocs, } from 'firebase/firestore';
@@ -101,6 +98,14 @@ interface FieldFormProps {
     initialData?: Partial<Field>;
     isEdit?: boolean;
 }
+
+interface DaumPostcodeData {
+    address: string;
+    zonecode: string;
+    buildingName?: string;
+    bname?: string;
+}
+
 
 const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) => {
     const router = useRouter();
@@ -168,7 +173,7 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
     });
 
     // Dropdown options
-    const [farmers, setFarmers] = useState<Farmer[]>([]);
+
     const [cropTypeOptions, setCropTypeOptions] = useState<DropdownOption[]>([]);
     const [areaUnitOptions] = useState<DropdownOption[]>([
         { value: '평', label: '평' },
@@ -193,8 +198,9 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
     const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
         setTabValue(newValue);
     };
-    let globalLastFlagNumber = 0;
 
+
+    const globalLastFlagNumberRef = useRef<number>(0);
 
 
     // 초기 데이터 로딩
@@ -205,22 +211,11 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
 
                 // 마지막 깃발 번호 가져오기
                 const lastFlagNumber = await getLastFlagNumber();
-                globalLastFlagNumber = lastFlagNumber;
+                globalLastFlagNumberRef.current = lastFlagNumber;
 
-                // 결제소속 목록 가져오기
-                const db = getFirestore();
-                const paymentGroupsCol = collection(db, 'paymentGroups');
-                const querySnapshot = await getDocs(paymentGroupsCol);
 
-                const paymentGroupsData = querySnapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return {
-                        id: doc.id,
-                        name: data.name || '이름 없음',
-                        createdBy: data.createdBy || '작성자 없음',
-                        createdAt: data.createdAt?.toDate() || new Date(),
-                    } as PaymentGroup;
-                });
+
+
 
 
                 // 기존 데이터가 있는 경우 위치 정보 설정
@@ -232,7 +227,7 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
 
                         // 최대 깃발 번호 확인하여 전역 변수 업데이트
                         const maxFlag = Math.max(...loadedLocations.map(loc => loc.flagNumber), lastFlagNumber);
-                        globalLastFlagNumber = maxFlag;
+                        globalLastFlagNumberRef.current = maxFlag;
 
                         // Firebase에 최신 깃발 번호 업데이트
                         if (maxFlag > lastFlagNumber) {
@@ -251,7 +246,7 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
 
                         // Firebase에 깃발 번호 업데이트
                         await updateLastFlagNumber(lastFlagNumber + 1);
-                        globalLastFlagNumber = lastFlagNumber + 1;
+                        globalLastFlagNumberRef.current = lastFlagNumber + 1;
                     }
                 } else {
                     // 신규 등록 시 빈 위치 정보 한 개만 추가
@@ -275,13 +270,12 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
 
                     // Firebase에 깃발 번호 업데이트
                     await updateLastFlagNumber(nextFlagNumber);
-                    globalLastFlagNumber = nextFlagNumber;
+                    globalLastFlagNumberRef.current = nextFlagNumber;
                 }
 
                 // Fetch farmers if farmerId is not provided
                 if (!farmerId) {
                     const farmersData = await getFarmers();
-                    setFarmers(farmersData);
                 } else {
                     // If farmerId is provided, fetch specific farmer
                     try {
@@ -381,7 +375,7 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
             };
 
             // 농가 목록 업데이트
-            setFarmers(prevFarmers => [...prevFarmers, createdFarmer]);
+
 
             // 새 농가 선택
             handleFarmerSelect(createdFarmer);
@@ -504,7 +498,7 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
     const addNewLocation = async () => {
         try {
             // 현재 가장 큰 깃발 번호 찾기
-            const maxFlag = Math.max(...locations.map(loc => loc.flagNumber), globalLastFlagNumber);
+            const maxFlag = Math.max(...locations.map(loc => loc.flagNumber), globalLastFlagNumberRef.current);
             const nextFlagNumber = maxFlag + 1;
 
             const newLocation: LocationItem = {
@@ -527,7 +521,7 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
 
             // Firebase에 최신 깃발 번호 업데이트
             await updateLastFlagNumber(nextFlagNumber);
-            globalLastFlagNumber = nextFlagNumber;
+            globalLastFlagNumberRef.current = nextFlagNumber;
         } catch (error) {
             console.error("Error adding new location:", error);
             // 에러 처리 (예: 알림 표시)
@@ -556,7 +550,7 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
     };
 
     // 위치 정보 업데이트
-    const updateLocation = (id: string, field: string, value: any) => {
+    const updateLocation = (id: string, field: string, value: string | number) => {
         const updatedLocations = locations.map(loc => {
             if (loc.id === id) {
                 if (field.includes('.')) {
@@ -564,7 +558,7 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
 
                     if (parent === 'area' && child === 'value') {
                         // 면적 값은 숫자로 변환
-                        const numValue = parseFloat(value);
+                        const numValue = typeof value === 'string' ? parseFloat(value) : value;
                         if (!isNaN(numValue) && numValue >= 0) {
                             return {
                                 ...loc,
@@ -786,13 +780,14 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
 
     // 주소 검색 함수
     const openAddressSearch = (locationId: string) => {
-        if (!(window as any).daum || !(window as any).daum.Postcode) {
+        const daumObj = (window).daum;
+        if (!daumObj || !daumObj.Postcode) {
             console.error('Daum 우편번호 서비스가 로드되지 않았습니다.');
             return;
         }
 
-        new (window as any).daum.Postcode({
-            oncomplete: (data: any) => {
+        new daumObj.Postcode({
+            oncomplete: (data: DaumPostcodeData) => {
                 const addressData = {
                     full: data.address,
                     zipcode: data.zonecode,
@@ -806,6 +801,7 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
             }
         }).open();
     };
+
 
     return (
         <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
@@ -1161,25 +1157,10 @@ const FieldForm: React.FC<FieldFormProps> = ({ initialData, isEdit = false }) =>
                                                 value={location.address.full || ''}
                                                 onClick={() => {
                                                     // 주소 검색 다이얼로그를 여기서 열 수 있습니다
-                                                    const mockData = {
-                                                        address: location.address
-                                                    };
-                                                    const mockOnChange = (e: any) => {
-                                                        const { name, value } = e.target;
-                                                        if (name === 'address.full') {
-                                                            updateLocation(location.id, 'address.full', value);
-                                                        } else if (name === 'address.detail') {
-                                                            updateLocation(location.id, 'address.detail', value);
-                                                        }
-                                                    };
-                                                    // 주소 검색 컴포넌트 호출
-                                                    const mockAddressUpdate = (addressData: any) => {
-                                                        handleAddressUpdate(location.id, addressData);
-                                                    };
-
+                                                    const daumObj = (window).daum;
                                                     // AddressInfo 컴포넌트가 직접 호출되지 않고,
                                                     // 여기서는 주소 검색 기능만 호출합니다
-                                                    if (!(window as any).daum || !(window as any).daum.Postcode) {
+                                                    if (!daumObj || !daumObj.Postcode) {
                                                         const script = document.createElement('script');
                                                         script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
                                                         script.async = true;

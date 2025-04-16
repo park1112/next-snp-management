@@ -28,7 +28,6 @@ import {
 } from '@mui/material';
 import {
     Search as SearchIcon,
-    FilterList as FilterListIcon,
     Add as AddIcon,
     MoreVert as MoreVertIcon,
     Edit as EditIcon,
@@ -46,14 +45,14 @@ interface ContractListProps {
 const ContractList: React.FC<ContractListProps> = ({ farmerId }) => {
     const router = useRouter();
     const { confirm } = useConfirm();
-    
+
     // useContracts 훅 사용
-    const { 
-        contracts, 
-        isLoading, 
-        error, 
-        contractTypes, 
-        deleteContract 
+    const {
+        contracts,
+        isLoading,
+        error,
+        contractTypes,
+        deleteContract
     } = useContracts(farmerId);
 
     // 상태 변수들
@@ -63,7 +62,7 @@ const ContractList: React.FC<ContractListProps> = ({ farmerId }) => {
     const [typeFilter, setTypeFilter] = useState<string>('');
     const [page, setPage] = useState<number>(1);
     const [rowsPerPage] = useState<number>(9);
-    
+
     // 컨텍스트 메뉴 상태
     const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
@@ -71,29 +70,29 @@ const ContractList: React.FC<ContractListProps> = ({ farmerId }) => {
     // 필터링 효과
     useEffect(() => {
         if (!contracts) return;
-        
+
         let result = [...contracts];
-        
+
         // 검색어 필터링
         if (searchTerm) {
             const lowerCaseSearchTerm = searchTerm.toLowerCase();
-            result = result.filter(contract => 
+            result = result.filter(contract =>
                 contract.contractNumber?.toLowerCase().includes(lowerCaseSearchTerm) ||
                 contract.farmerName?.toLowerCase().includes(lowerCaseSearchTerm) ||
                 contract.fieldNames?.some(name => name.toLowerCase().includes(lowerCaseSearchTerm))
             );
         }
-        
+
         // 상태 필터링
         if (statusFilter) {
             result = result.filter(contract => contract.contractStatus === statusFilter);
         }
-        
+
         // 유형 필터링
         if (typeFilter) {
             result = result.filter(contract => contract.contractType === typeFilter);
         }
-        
+
         setFilteredContracts(result);
         setPage(1); // 필터링 시 첫 페이지로 리셋
     }, [contracts, searchTerm, statusFilter, typeFilter]);
@@ -108,16 +107,16 @@ const ContractList: React.FC<ContractListProps> = ({ farmerId }) => {
     const handleChangePage = (event: React.ChangeEvent<unknown>, value: number) => {
         setPage(value);
     };
-    
+
     // 필터 변경 핸들러
     const handleStatusChange = (event: SelectChangeEvent) => {
         setStatusFilter(event.target.value);
     };
-    
+
     const handleTypeChange = (event: SelectChangeEvent) => {
         setTypeFilter(event.target.value);
     };
-    
+
     // 컨텍스트 메뉴 핸들러
     const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, contractId: string) => {
         event.stopPropagation();
@@ -129,7 +128,7 @@ const ContractList: React.FC<ContractListProps> = ({ farmerId }) => {
         setMenuAnchorEl(null);
         setSelectedContractId(null);
     };
-    
+
     // 컨텍스트 메뉴 액션
     const handleViewContract = () => {
         if (selectedContractId) {
@@ -154,7 +153,7 @@ const ContractList: React.FC<ContractListProps> = ({ farmerId }) => {
                 cancelText: '취소',
                 confirmColor: 'error'
             });
-            
+
             if (isConfirmed) {
                 try {
                     await deleteContract(selectedContractId);
@@ -296,7 +295,7 @@ const ContractList: React.FC<ContractListProps> = ({ farmerId }) => {
             {filteredContracts.length > 0 && (
                 <Grid container spacing={2}>
                     {paginatedContracts.map((contract) => (
-                            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={contract.id}>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }} key={contract.id}>
                             <Card
                                 sx={{
                                     height: '100%',
@@ -366,15 +365,15 @@ const ContractList: React.FC<ContractListProps> = ({ farmerId }) => {
                                             다음 납부
                                         </Typography>
                                         <Typography variant="body1">
-                                            {contract.contractStatus === 'completed' ? 
-                                                '완납' : 
-                                                contract.downPayment?.status === 'unpaid' ? 
+                                            {contract.contractStatus === 'completed' ?
+                                                '완납' :
+                                                contract.downPayment?.status === 'unpaid' ?
                                                     `계약금: ${contract.downPayment.amount.toLocaleString()}원` :
-                                                contract.intermediatePayments?.some(p => p.status === 'unpaid') ?
-                                                    `중도금: ${contract.intermediatePayments.find(p => p.status === 'unpaid')?.amount.toLocaleString()}원` :
-                                                contract.finalPayment?.status === 'unpaid' ?
-                                                    `잔금: ${contract.finalPayment.amount.toLocaleString()}원` :
-                                                    '없음'
+                                                    contract.intermediatePayments?.some(p => p.status === 'unpaid') ?
+                                                        `중도금: ${contract.intermediatePayments.find(p => p.status === 'unpaid')?.amount.toLocaleString()}원` :
+                                                        contract.finalPayment?.status === 'unpaid' ?
+                                                            `잔금: ${contract.finalPayment.amount.toLocaleString()}원` :
+                                                            '없음'
                                             }
                                         </Typography>
                                     </Box>

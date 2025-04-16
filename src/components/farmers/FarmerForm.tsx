@@ -12,23 +12,16 @@ import {
     CircularProgress,
     Grid,
     Paper,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    TextField,
-    Typography,
+
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon, Save as SaveIcon, Add as AddIcon } from '@mui/icons-material';
+import { ArrowBack as ArrowBackIcon, Save as SaveIcon } from '@mui/icons-material';
 import BasicInfo from '../form/BasicInfo';
 import AddressInfo from '../form/AddressInfo';
 import BankInfo from '../form/BankInfo';
 import AdditionalInfo from '../form/AdditionalInfo';
 import { Farmer, DropdownOption } from '@/types';
 import { createFarmer, updateFarmer, getSubdistricts } from '@/services/firebase/farmerService';
-import { collection, getDocs, addDoc, serverTimestamp, getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { PaymentGroup } from '@/services/firebase/paymentGroupService';
+
 import CollectionSelector from '../common/AffiliationCollectionSelector';
 import { usePaymentGroups } from '@/hooks/common/usePaymentGroups';
 
@@ -62,10 +55,8 @@ const FarmerForm: React.FC<FarmerFormProps> = ({ initialData, isEdit = false }) 
         }
     );
 
-    const [subdistrictOptions, setSubdistrictOptions] = useState<DropdownOption[]>([]);
-    const { paymentGroups: paymentGroupOptions, addPaymentGroup } = usePaymentGroups();
-    const [isLoadingMetadata, setIsLoadingMetadata] = useState(true);
 
+    const { paymentGroups: paymentGroupOptions, addPaymentGroup } = usePaymentGroups();
     const [bankOptions] = useState<DropdownOption[]>([
         { value: '신한은행', label: '신한은행' },
         { value: '국민은행', label: '국민은행' },
@@ -82,30 +73,7 @@ const FarmerForm: React.FC<FarmerFormProps> = ({ initialData, isEdit = false }) 
     const [loading, setLoading] = useState<boolean>(false);
     const [success, setSuccess] = useState<boolean>(false);
     const [successMessage, setSuccessMessage] = useState<string>('');
-    const [showAddDialog, setShowAddDialog] = useState<boolean>(false);
-    const [dialogType, setDialogType] = useState<'subdistrict' | 'paymentGroup'>('subdistrict');
-    const [newValue, setNewValue] = useState<string>('');
-    const [isAdding, setIsAdding] = useState<boolean>(false);
 
-    // 데이터 로드 함수
-    const loadMetadata = async () => {
-        setIsLoadingMetadata(true);
-        try {
-            // 면단위 로드
-            const subdistrictsData = await getSubdistricts();
-            setSubdistrictOptions(subdistrictsData.map(item => ({ value: item, label: item })));
-
-        } catch (error) {
-            console.error('메타데이터 로드 오류:', error);
-        } finally {
-            setIsLoadingMetadata(false);
-        }
-    };
-
-    // 초기 데이터 로드
-    useEffect(() => {
-        loadMetadata();
-    }, []);
 
     // 입력 핸들러 (포맷팅 포함)
     const handleChange = (
@@ -233,15 +201,10 @@ const FarmerForm: React.FC<FarmerFormProps> = ({ initialData, isEdit = false }) 
     };
 
     // 드롭다운 추가 다이얼로그 핸들러
-    const handleOpenDialog = (type: 'subdistrict' | 'paymentGroup') => {
-        setDialogType(type);
-        setNewValue('');
-        setShowAddDialog(true);
+    const handleOpenDialog = () => {
+
     };
 
-    const handleCloseDialog = () => {
-        setShowAddDialog(false);
-    };
 
 
     // AddressInfo에서 전달받은 주소 업데이트 핸들러

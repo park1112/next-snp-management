@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { Box, CircularProgress, Alert } from '@mui/material';
 import MainLayout from '@/components/layout/MainLayout';
 import FieldForm from '@/components/fields/FieldForm';
@@ -10,7 +10,6 @@ import { Field } from '@/types';
 
 export default function EditFieldPage() {
     const params = useParams();
-    const router = useRouter();
     const fieldId = params.id as string;
 
     // States

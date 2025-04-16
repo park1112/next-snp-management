@@ -18,22 +18,17 @@ import {
     Select,
     FormControl,
     InputLabel,
-    SelectChangeEvent,
     CircularProgress,
     Pagination,
     IconButton,
     Menu,
     ListItemIcon,
     ListItemText,
-    FormControlLabel,
-    Switch,
-    useTheme,
-    Tooltip
+
 } from '@mui/material';
 import {
     Search as SearchIcon,
     FilterList as FilterListIcon,
-    Sort as SortIcon,
     Add as AddIcon,
     Phone as PhoneIcon,
     Place as PlaceIcon,
@@ -55,7 +50,6 @@ interface FarmerListProps {
 
 const FarmerList: React.FC<FarmerListProps> = ({ initialFarmers = [] }) => {
     const router = useRouter();
-    const theme = useTheme();
 
     // States
     const [farmers, setFarmers] = useState<Farmer[]>(initialFarmers);

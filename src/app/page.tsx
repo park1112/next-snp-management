@@ -28,7 +28,7 @@ import {
 } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { collection, query, getDocs, getFirestore, orderBy, limit } from 'firebase/firestore';
+import { collection, query, getDocs, getFirestore } from 'firebase/firestore';
 
 // Stats card component
 interface StatCardProps {
@@ -149,13 +149,11 @@ const Dashboard = () => {
     paymentCount: 0
   });
   const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Mock data for now - will be replaced with actual Firestore data
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        setIsLoading(true);
         const db = getFirestore();
 
         // Example: Count farmers
@@ -214,8 +212,6 @@ const Dashboard = () => {
         ]);
       } catch (error) {
         console.error('Error fetching stats:', error);
-      } finally {
-        setIsLoading(false);
       }
     };
 

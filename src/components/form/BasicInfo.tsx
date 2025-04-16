@@ -3,37 +3,18 @@ import React from 'react';
 import {
     Grid,
     TextField,
-    FormControl,
-    FormHelperText,
     Typography,
     Divider,
     InputAdornment,
-    Button,
-    Chip,
-    Paper,
-    Box,
-    IconButton,
-    Tooltip,
 } from '@mui/material';
 import {
     Person as PersonIcon,
     Phone as PhoneIcon,
-    Business as BusinessIcon,
-    Add as AddIcon,
-    Delete as DeleteIcon,
+
 } from '@mui/icons-material';
-import { Farmer, PaymentGroup } from '@/types';
+import { Farmer } from '@/types';
 
 
-
-
-interface BasicInfoProps {
-    formData: Partial<Farmer>;
-    errors: { [key: string]: string };
-    onChange: (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => void;
-
-    handleOpenDialog: (type: 'paymentGroup') => void;
-}
 
 // 수정된 BasicInfo 컴포넌트 - paymentGroupOptions 제거
 const BasicInfo: React.FC<{

@@ -332,7 +332,7 @@ const PaymentGroupManagement: React.FC = () => {
                 <DialogTitle>결제소속 삭제</DialogTitle>
                 <DialogContent>
                     <Typography>
-                        '{deleteTargetName}' 결제소속을 삭제하시겠습니까?
+                        &apos;{deleteTargetName}&apos; 결제소속을 삭제하시겠습니까?
                     </Typography>
                     <Typography color="error" variant="body2" sx={{ mt: 2 }}>
                         * 주의: 이 결제소속을 사용하는 농가가 있을 경우 영향을 받을 수 있습니다.

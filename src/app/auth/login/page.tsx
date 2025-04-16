@@ -46,14 +46,16 @@ export default function LoginPage() {
             setLoading(true);
             await signInWithEmailAndPassword(auth, email, password);
             router.push('/');
-        } catch (err: any) {
+        } catch (err: unknown) {
             let errorMessage = '로그인에 실패했습니다.';
-            if (err.code === 'auth/invalid-credential') {
-                errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
-            } else if (err.code === 'auth/user-not-found') {
-                errorMessage = '계정을 찾을 수 없습니다. 이메일을 확인해주세요.';
-            } else if (err.code === 'auth/too-many-requests') {
-                errorMessage = '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
+            if (err instanceof Error && 'code' in err) {
+                if (err.code === 'auth/invalid-credential') {
+                    errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
+                } else if (err.code === 'auth/user-not-found') {
+                    errorMessage = '계정을 찾을 수 없습니다. 이메일을 확인해주세요.';
+                } else if (err.code === 'auth/too-many-requests') {
+                    errorMessage = '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
+                }
             }
             setError(errorMessage);
         } finally {

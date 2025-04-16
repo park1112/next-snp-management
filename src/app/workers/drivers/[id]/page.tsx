@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Box, CircularProgress, Alert, Paper, Typography, Grid, Divider, Button, Chip, IconButton, Tabs, Tab, List, ListItem, ListItemText, Card, CardContent, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
-import { ArrowBack as ArrowBackIcon, Edit as EditIcon, Delete as DeleteIcon, Phone as PhoneIcon, Home as HomeIcon, Person as PersonIcon, Place as PlaceIcon, AccountBalance as BankIcon, DirectionsCar as CarIcon, Money as MoneyIcon, Event as EventIcon } from '@mui/icons-material';
+import { Box, CircularProgress, Alert, Paper, Typography, Grid, Divider, Button, Chip, IconButton, Tabs, Tab, List, ListItem, ListItemText, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import { ArrowBack as ArrowBackIcon, Edit as EditIcon, Delete as DeleteIcon, Phone as PhoneIcon, Home as HomeIcon, Person as PersonIcon, AccountBalance as BankIcon, DirectionsCar as CarIcon } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { useWorker } from '@/hooks/useWorkers';
 import { Driver } from '@/types';

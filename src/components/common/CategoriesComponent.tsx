@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     Box,
     Typography,
@@ -24,14 +24,15 @@ import {
     Tooltip,
     Card,
     CardContent,
-    Grid,
+    CardActions,
     List,
     ListItem,
+    ListItemButton,
     ListItemText,
-    ListItemSecondaryAction,
     ListItemIcon,
     Switch,
     FormControlLabel,
+    Grid,
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -46,8 +47,7 @@ import {
     ArrowDownward as ArrowDownwardIcon,
     DragIndicator as DragIndicatorIcon,
     SwapVert as SwapVertIcon,
-    FirstPage as FirstPageIcon,
-    LastPage as LastPageIcon,
+
 } from '@mui/icons-material';
 import { useCategories } from '@/hooks/common/useCategories';
 import { Category } from '@/types';
@@ -65,7 +65,6 @@ const CategoriesComponent: React.FC = () => {
         setNextCategory,
         getCategoryPath,
         reorderCategories,
-        moveCategoryPosition
     } = useCategories();
 
     // 상태 관리
@@ -79,6 +78,11 @@ const CategoriesComponent: React.FC = () => {
     const [successMessage, setSuccessMessage] = useState('');
     const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
     const [isOrderingMode, setIsOrderingMode] = useState(false);
+
+    // 시작점 카테고리들(다른 카테고리에서 참조되지 않는 카테고리들) 계산
+    const startCategories = categories.filter(category =>
+        !categories.some(c => c.nextCategoryId === category.id)
+    );
 
     // 카테고리 추가 핸들러
     const handleAddCategory = async () => {
@@ -141,12 +145,12 @@ const CategoriesComponent: React.FC = () => {
         }
     };
 
-    // 드래그 앤 드롭 처리 핸들러
+    // 드래그 앤 드롭 처리 핸들러 (리스트)
     const handleDragEnd = async (result: DropResult) => {
         const { destination, source } = result;
 
         // 드롭 위치가 없거나 같은 위치로 드롭한 경우 처리하지 않음
-        if (!destination || (destination.index === source.index)) {
+        if (!destination || (destination.index === source.index && destination.droppableId === source.droppableId)) {
             return;
         }
 
@@ -170,14 +174,71 @@ const CategoriesComponent: React.FC = () => {
         }
     };
 
-    // 카테고리 위/아래로 이동 핸들러
-    const handleMoveCategory = async (categoryId: string, direction: 'up' | 'down') => {
+    // 프로세스 플로우 드래그 앤 드롭 처리 핸들러
+    const handleFlowDragEnd = async (result: DropResult, startCategoryId: string) => {
+        const { destination, source } = result;
+
+        // 드롭 위치가 없거나 같은 위치로 드롭한 경우 처리하지 않음
+        if (!destination || (destination.index === source.index)) {
+            return;
+        }
+
         try {
-            await moveCategoryPosition(categoryId, direction);
-            setSuccessMessage(`카테고리가 성공적으로 ${direction === 'up' ? '위' : '아래'}로 이동되었습니다.`);
+            // 현재 경로 가져오기
+            const path = getCategoryPath(startCategoryId);
+
+            // 새로운 순서로 경로 재구성
+            const reorderedPath = Array.from(path);
+            const [movedCategory] = reorderedPath.splice(source.index, 1);
+            reorderedPath.splice(destination.index, 0, movedCategory);
+
+            // 연결 업데이트
+            for (let i = 0; i < reorderedPath.length - 1; i++) {
+                await setNextCategory(reorderedPath[i].id, reorderedPath[i + 1].id);
+            }
+
+            // 마지막 항목은 다음 단계 없음
+            await setNextCategory(reorderedPath[reorderedPath.length - 1].id, null);
+
+            setSuccessMessage('작업 프로세스 흐름이 성공적으로 변경되었습니다.');
             setSuccess(true);
         } catch (error) {
-            console.error(`Error moving category ${direction}:`, error);
+            console.error('Error reordering flow:', error);
+        }
+    };
+
+
+
+    // 프로세스 내에서 카테고리 이동 핸들러
+    const handleMoveInProcess = async (startCategoryId: string, categoryIndex: number, direction: 'up' | 'down') => {
+        try {
+            const path = getCategoryPath(startCategoryId);
+
+            // 첫 번째 항목을 위로 또는 마지막 항목을 아래로 이동할 수 없음
+            if ((direction === 'up' && categoryIndex === 0) ||
+                (direction === 'down' && categoryIndex === path.length - 1)) {
+                return;
+            }
+
+            // 새 경로 생성
+            const newPath = [...path];
+            const targetIndex = direction === 'up' ? categoryIndex - 1 : categoryIndex + 1;
+
+            // 위치 교환
+            [newPath[categoryIndex], newPath[targetIndex]] = [newPath[targetIndex], newPath[categoryIndex]];
+
+            // 연결 업데이트
+            for (let i = 0; i < newPath.length - 1; i++) {
+                await setNextCategory(newPath[i].id, newPath[i + 1].id);
+            }
+
+            // 마지막 항목은 다음 단계 없음
+            await setNextCategory(newPath[newPath.length - 1].id, null);
+
+            setSuccessMessage(`프로세스 내 카테고리가 성공적으로 ${direction === 'up' ? '위' : '아래'}로 이동되었습니다.`);
+            setSuccess(true);
+        } catch (error) {
+            console.error(`Error moving category in process ${direction}:`, error);
         }
     };
 
@@ -213,17 +274,34 @@ const CategoriesComponent: React.FC = () => {
 
     // 다음 단계 선택 옵션 생성 (순환 참조 방지)
     const getNextCategoryOptions = (currentCategoryId: string) => {
+        // 방문한 카테고리 추적을 위한 Set
+        const visitedSet = new Set<string>();
+
         // 현재 카테고리와 현재 카테고리를 참조하는 카테고리들은 제외
         const isInPath = (categoryId: string, targetId: string): boolean => {
+            // 이미 방문했다면 순환 참조 방지
+            if (visitedSet.has(categoryId)) {
+                return false;
+            }
+
+            visitedSet.add(categoryId);
+
             const category = categories.find(c => c.id === categoryId);
             if (!category) return false;
             if (category.id === targetId) return true;
-            return category.nextCategoryId ? isInPath(category.nextCategoryId, targetId) : false;
+
+            if (category.nextCategoryId) {
+                return isInPath(category.nextCategoryId, targetId);
+            }
+
+            return false;
         };
 
-        return categories.filter(category =>
-            category.id !== currentCategoryId && !isInPath(category.id, currentCategoryId)
-        );
+        return categories.filter(category => {
+            // 매번 새로운 방문 세트 생성
+            visitedSet.clear();
+            return category.id !== currentCategoryId && !isInPath(category.id, currentCategoryId);
+        });
     };
 
     // 순서 조절 모드 토글
@@ -316,7 +394,7 @@ const CategoriesComponent: React.FC = () => {
                         ) : isOrderingMode ? (
                             // 순서 조절 모드 UI
                             <DragDropContext onDragEnd={handleDragEnd}>
-                                <Droppable droppableId="categories">
+                                <Droppable droppableId="categories" isDropDisabled={false} isCombineEnabled={false}>
                                     {(provided) => (
                                         <List
                                             sx={{ p: 0 }}
@@ -326,105 +404,61 @@ const CategoriesComponent: React.FC = () => {
                                             {categories.map((category, index) => (
                                                 <Draggable
                                                     key={category.id}
-                                                    draggableId={category.id}
+                                                    draggableId={String(category.id)}
                                                     index={index}
+                                                    isDragDisabled={false}
                                                 >
                                                     {(provided, snapshot) => (
-                                                        <ListItem
+                                                        <div
                                                             ref={provided.innerRef}
                                                             {...provided.draggableProps}
-                                                            sx={{
+                                                            {...provided.dragHandleProps}
+                                                            style={{
                                                                 ...provided.draggableProps.style,
-                                                                background: snapshot.isDragging ? 'rgba(63, 81, 181, 0.08)' : 'transparent',
-                                                                borderLeft: '0px solid',
-                                                                borderLeftColor: 'primary.main',
-                                                                transition: 'all 0.2s',
-                                                                '&:hover': {
-                                                                    bgcolor: 'action.hover',
-                                                                },
                                                             }}
                                                         >
-                                                            <ListItemIcon
-                                                                {...provided.dragHandleProps}
+                                                            <ListItemButton
+                                                                onClick={() => setExpandedCategory(expandedCategory === category.id ? null : category.id)}
                                                                 sx={{
-                                                                    cursor: 'grab',
-                                                                    '&:active': { cursor: 'grabbing' }
+                                                                    background: snapshot.isDragging ? 'rgba(63, 81, 181, 0.08)' : 'transparent',
+                                                                    borderLeft: '0px solid',
+                                                                    borderLeftColor: 'primary.main',
+                                                                    transition: 'all 0.2s',
+                                                                    '&:hover': {
+                                                                        bgcolor: 'action.hover',
+                                                                    },
                                                                 }}
                                                             >
-                                                                <DragIndicatorIcon color="action" />
-                                                            </ListItemIcon>
-                                                            <ListItemText
-                                                                primary={
-                                                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                                        <Chip
-                                                                            label={index + 1}
-                                                                            size="small"
-                                                                            sx={{ mr: 1, minWidth: 28 }}
-                                                                        />
-                                                                        <Typography>
-                                                                            {category.name}
-                                                                        </Typography>
-                                                                        {category.nextCategoryId && (
-                                                                            <Tooltip title="다음 단계 연결됨">
-                                                                                <LinkIcon fontSize="small" color="primary" sx={{ ml: 1 }} />
-                                                                            </Tooltip>
-                                                                        )}
-                                                                    </Box>
-                                                                }
-                                                            />
-                                                            <ListItemSecondaryAction>
-                                                                <Tooltip title="맨 위로 이동">
-                                                                    <IconButton
-                                                                        edge="end"
-                                                                        size="small"
-                                                                        disabled={index === 0}
-                                                                        onClick={() => {
-                                                                            const newCategories = [...categories];
-                                                                            const [removed] = newCategories.splice(index, 1);
-                                                                            newCategories.unshift(removed);
-                                                                            reorderCategories(newCategories);
-                                                                        }}
-                                                                    >
-                                                                        <FirstPageIcon sx={{ transform: 'rotate(-90deg)' }} />
-                                                                    </IconButton>
-                                                                </Tooltip>
-                                                                <Tooltip title="위로 이동">
-                                                                    <IconButton
-                                                                        edge="end"
-                                                                        size="small"
-                                                                        disabled={index === 0}
-                                                                        onClick={() => handleMoveCategory(category.id, 'up')}
-                                                                    >
-                                                                        <ArrowUpwardIcon />
-                                                                    </IconButton>
-                                                                </Tooltip>
-                                                                <Tooltip title="아래로 이동">
-                                                                    <IconButton
-                                                                        edge="end"
-                                                                        size="small"
-                                                                        disabled={index === categories.length - 1}
-                                                                        onClick={() => handleMoveCategory(category.id, 'down')}
-                                                                    >
-                                                                        <ArrowDownwardIcon />
-                                                                    </IconButton>
-                                                                </Tooltip>
-                                                                <Tooltip title="맨 아래로 이동">
-                                                                    <IconButton
-                                                                        edge="end"
-                                                                        size="small"
-                                                                        disabled={index === categories.length - 1}
-                                                                        onClick={() => {
-                                                                            const newCategories = [...categories];
-                                                                            const [removed] = newCategories.splice(index, 1);
-                                                                            newCategories.push(removed);
-                                                                            reorderCategories(newCategories);
-                                                                        }}
-                                                                    >
-                                                                        <LastPageIcon sx={{ transform: 'rotate(-90deg)' }} />
-                                                                    </IconButton>
-                                                                </Tooltip>
-                                                            </ListItemSecondaryAction>
-                                                        </ListItem>
+                                                                <ListItemIcon
+                                                                    sx={{
+                                                                        cursor: 'grab',
+                                                                        '&:active': { cursor: 'grabbing' }
+                                                                    }}
+                                                                >
+                                                                    <DragIndicatorIcon color="action" />
+                                                                </ListItemIcon>
+                                                                <ListItemText
+                                                                    primary={
+                                                                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                                            <Chip
+                                                                                label={index + 1}
+                                                                                size="small"
+                                                                                sx={{ mr: 1, minWidth: 28 }}
+                                                                            />
+                                                                            <Typography>
+                                                                                {category.name}
+                                                                            </Typography>
+                                                                            {category.nextCategoryId && (
+                                                                                <Tooltip title="다음 단계 연결됨">
+                                                                                    <LinkIcon fontSize="small" color="primary" sx={{ ml: 1 }} />
+                                                                                </Tooltip>
+                                                                            )}
+                                                                        </div>
+                                                                    }
+                                                                />
+                                                            </ListItemButton>
+                                                            <Divider />
+                                                        </div>
                                                     )}
                                                 </Draggable>
                                             ))}
@@ -438,7 +472,7 @@ const CategoriesComponent: React.FC = () => {
                             <List sx={{ p: 0 }}>
                                 {categories.map((category) => (
                                     <React.Fragment key={category.id}>
-                                        <ListItem
+                                        <ListItemButton
                                             onClick={() => setExpandedCategory(expandedCategory === category.id ? null : category.id)}
                                             sx={{
                                                 borderLeft: expandedCategory === category.id ?
@@ -449,7 +483,7 @@ const CategoriesComponent: React.FC = () => {
                                         >
                                             <ListItemText
                                                 primary={
-                                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center' }}>
                                                         <Chip
                                                             label={category.order || '?'}
                                                             size="small"
@@ -463,54 +497,46 @@ const CategoriesComponent: React.FC = () => {
                                                                 <LinkIcon fontSize="small" color="primary" sx={{ ml: 1 }} />
                                                             </Tooltip>
                                                         )}
-                                                    </Box>
+                                                    </div>
                                                 }
                                                 secondary={
-                                                    <Box sx={{ mt: 1 }}>
-                                                        {expandedCategory === category.id && renderCategoryPath(category.id)}
-                                                    </Box>
+                                                    expandedCategory === category.id ? renderCategoryPath(category.id) : null
                                                 }
                                             />
-                                            <ListItemSecondaryAction>
-                                                <Tooltip title="다음 단계 연결">
-                                                    <IconButton
-                                                        edge="end"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setLinkCategory(category);
-                                                            setSelectedNextCategoryId(category.nextCategoryId || '');
-                                                            setOpenDialog('link');
-                                                        }}
-                                                    >
-                                                        {category.nextCategoryId ? <LinkIcon color="primary" /> : <LinkOffIcon />}
-                                                    </IconButton>
-                                                </Tooltip>
-                                                <Tooltip title="수정">
-                                                    <IconButton
-                                                        edge="end"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setEditCategory(category);
-                                                            setOpenDialog('edit');
-                                                        }}
-                                                    >
-                                                        <EditIcon />
-                                                    </IconButton>
-                                                </Tooltip>
-                                                <Tooltip title="삭제">
-                                                    <IconButton
-                                                        edge="end"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setCategoryToDelete(category);
-                                                            setOpenDialog('delete');
-                                                        }}
-                                                    >
-                                                        <DeleteIcon />
-                                                    </IconButton>
-                                                </Tooltip>
-                                            </ListItemSecondaryAction>
-                                        </ListItem>
+                                            <IconButton
+                                                edge="end"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setLinkCategory(category);
+                                                    setSelectedNextCategoryId(category.nextCategoryId || '');
+                                                    setOpenDialog('link');
+                                                }}
+                                                sx={{ mr: 0.5 }}
+                                            >
+                                                {category.nextCategoryId ? <LinkIcon color="primary" /> : <LinkOffIcon />}
+                                            </IconButton>
+                                            <IconButton
+                                                edge="end"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditCategory(category);
+                                                    setOpenDialog('edit');
+                                                }}
+                                                sx={{ mr: 0.5 }}
+                                            >
+                                                <EditIcon />
+                                            </IconButton>
+                                            <IconButton
+                                                edge="end"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setCategoryToDelete(category);
+                                                    setOpenDialog('delete');
+                                                }}
+                                            >
+                                                <DeleteIcon />
+                                            </IconButton>
+                                        </ListItemButton>
                                         <Divider />
                                     </React.Fragment>
                                 ))}
@@ -521,8 +547,17 @@ const CategoriesComponent: React.FC = () => {
 
                 <Grid size={{ xs: 12, md: 6 }}>
                     <Paper elevation={1} sx={{ p: 0, borderRadius: 2, overflow: 'hidden' }}>
-                        <Box sx={{ bgcolor: 'secondary.main', color: 'white', p: 2 }}>
+                        <Box sx={{ bgcolor: 'secondary.main', color: 'white', p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Typography variant="h6">작업 프로세스 흐름</Typography>
+                            {isOrderingMode && (
+                                <Chip
+                                    icon={<SwapVertIcon />}
+                                    label="프로세스 내 순서 변경 가능"
+                                    variant="outlined"
+                                    size="small"
+                                    sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 'medium' }}
+                                />
+                            )}
                         </Box>
                         <Box sx={{ p: 3 }}>
                             {categories.length === 0 ? (
@@ -532,41 +567,172 @@ const CategoriesComponent: React.FC = () => {
                             ) : (
                                 <>
                                     <Typography paragraph>
-                                        각 작업 카테고리의 프로세스 흐름을 확인하세요. 첫 번째 단계부터 마지막 단계까지의 흐름이 표시됩니다.
+                                        각 작업 카테고리의 프로세스 흐름을 확인하세요. {isOrderingMode && '순서 조절 모드에서는 프로세스 내 단계를 드래그하거나 버튼을 눌러 순서를 변경할 수 있습니다.'}
                                     </Typography>
                                     <Box sx={{ mt: 2 }}>
-                                        {categories.filter(category => {
-                                            // 다른 카테고리의 다음 단계로 연결되지 않은 카테고리만 표시 (시작점)
-                                            return !categories.some(c => c.nextCategoryId === category.id);
-                                        }).map(startCategory => (
-                                            <Card key={startCategory.id} sx={{ mb: 2, border: '1px solid', borderColor: 'divider' }}>
-                                                <CardContent>
+                                        {startCategories.map(startCategory => (
+                                            <Card
+                                                key={startCategory.id}
+                                                sx={{
+                                                    mb: 3,
+                                                    border: '1px solid',
+                                                    borderColor: 'divider',
+                                                    boxShadow: isOrderingMode ? '0px 2px 10px rgba(0,0,0,0.1)' : 'inherit'
+                                                }}
+                                            >
+                                                <CardContent sx={{ pb: 1 }}>
                                                     <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                                                         {startCategory.name} 프로세스
                                                     </Typography>
-                                                    <Box sx={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        flexWrap: 'wrap',
-                                                        gap: 1,
-                                                        mt: 2
-                                                    }}>
-                                                        {getCategoryPath(startCategory.id).map((category, index, arr) => (
-                                                            <React.Fragment key={category.id}>
-                                                                <Chip
-                                                                    label={`${index + 1}. ${category.name}`}
-                                                                    color={index === 0 ? "primary" :
-                                                                        index === arr.length - 1 ? "secondary" : "default"}
-                                                                    variant="filled"
-                                                                    sx={{ fontWeight: 'medium' }}
-                                                                />
-                                                                {index < arr.length - 1 && (
-                                                                    <ArrowForwardIcon fontSize="small" color="action" />
+
+                                                    {isOrderingMode ? (
+                                                        // 순서 조절 모드 UI - 드래그 앤 드롭 및 버튼으로 조절
+                                                        <DragDropContext onDragEnd={(result) => handleFlowDragEnd(result, startCategory.id)}>
+                                                            <Droppable droppableId={`flow-${startCategory.id}`} isDropDisabled={false} isCombineEnabled={false}>
+                                                                {(provided) => (
+                                                                    <div
+                                                                        ref={provided.innerRef}
+                                                                        {...provided.droppableProps}
+                                                                        style={{
+                                                                            marginTop: '16px',
+                                                                            border: '1px dashed #ccc',
+                                                                            borderRadius: '4px',
+                                                                            padding: '16px'
+                                                                        }}
+                                                                    >
+                                                                        {getCategoryPath(startCategory.id).map((category, index, arr) => (
+                                                                            <Draggable
+                                                                                key={category.id}
+                                                                                draggableId={`flow-item-${category.id}`}
+                                                                                index={index}
+                                                                                isDragDisabled={false}
+                                                                            >
+                                                                                {(provided, snapshot) => (
+                                                                                    <div
+                                                                                        ref={provided.innerRef}
+                                                                                        {...provided.draggableProps}
+                                                                                        style={{
+                                                                                            ...provided.draggableProps.style,
+                                                                                            marginBottom: index < arr.length - 1 ? '16px' : 0,
+                                                                                            position: 'relative',
+                                                                                            padding: '8px',
+                                                                                            borderRadius: '4px',
+                                                                                            backgroundColor: snapshot.isDragging ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                                                                                        }}
+                                                                                    >
+                                                                                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                                                            <div
+                                                                                                {...provided.dragHandleProps}
+                                                                                                style={{
+                                                                                                    marginRight: '8px',
+                                                                                                    cursor: 'grab',
+                                                                                                }}
+                                                                                            >
+                                                                                                <DragIndicatorIcon color="action" />
+                                                                                            </div>
+                                                                                            <Chip
+                                                                                                label={`${index + 1}. ${category.name}`}
+                                                                                                color={index === 0 ? "primary" :
+                                                                                                    index === arr.length - 1 ? "secondary" : "default"}
+                                                                                                style={{ flexGrow: 1 }}
+                                                                                            />
+
+                                                                                            <div style={{ display: 'flex', marginLeft: '8px' }}>
+                                                                                                <IconButton
+                                                                                                    size="small"
+                                                                                                    disabled={index === 0}
+                                                                                                    onClick={() => handleMoveInProcess(startCategory.id, index, 'up')}
+                                                                                                >
+                                                                                                    <ArrowUpwardIcon fontSize="small" />
+                                                                                                </IconButton>
+                                                                                                <IconButton
+                                                                                                    size="small"
+                                                                                                    disabled={index === arr.length - 1}
+                                                                                                    onClick={() => handleMoveInProcess(startCategory.id, index, 'down')}
+                                                                                                >
+                                                                                                    <ArrowDownwardIcon fontSize="small" />
+                                                                                                </IconButton>
+                                                                                            </div>
+                                                                                        </div>
+
+                                                                                        {index < arr.length - 1 && (
+                                                                                            <div style={{
+                                                                                                position: 'absolute',
+                                                                                                bottom: '-12px',
+                                                                                                left: '50%',
+                                                                                                transform: 'translateX(-50%)',
+                                                                                                color: '#999',
+                                                                                                zIndex: 1
+                                                                                            }}>
+                                                                                                <ArrowDownwardIcon fontSize="small" />
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                )}
+                                                                            </Draggable>
+                                                                        ))}
+                                                                        {provided.placeholder}
+                                                                    </div>
                                                                 )}
-                                                            </React.Fragment>
-                                                        ))}
-                                                    </Box>
+                                                            </Droppable>
+                                                        </DragDropContext>
+                                                    ) : (
+                                                        // 일반 모드 UI - 단순 표시
+                                                        <div style={{
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            gap: '8px',
+                                                            marginTop: '16px'
+                                                        }}>
+                                                            {getCategoryPath(startCategory.id).map((category, index, arr) => (
+                                                                <div
+                                                                    key={category.id}
+                                                                    style={{
+                                                                        display: 'flex',
+                                                                        flexDirection: 'column',
+                                                                        alignItems: 'center',
+                                                                        position: 'relative'
+                                                                    }}
+                                                                >
+                                                                    <Chip
+                                                                        label={`${index + 1}. ${category.name}`}
+                                                                        color={index === 0 ? "primary" :
+                                                                            index === arr.length - 1 ? "secondary" : "default"}
+                                                                        variant="filled"
+                                                                        style={{ fontWeight: 500 }}
+                                                                    />
+
+                                                                    {index < arr.length - 1 && (
+                                                                        <div style={{
+                                                                            display: 'flex',
+                                                                            flexDirection: 'column',
+                                                                            alignItems: 'center',
+                                                                            margin: '8px 0'
+                                                                        }}>
+                                                                            <ArrowDownwardIcon fontSize="small" color="action" />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </CardContent>
+
+                                                {isOrderingMode && (
+                                                    <CardActions sx={{ justifyContent: 'flex-end', pt: 0 }}>
+                                                        <Button
+                                                            size="small"
+                                                            onClick={() => {
+                                                                setLinkCategory(startCategory);
+                                                                setSelectedNextCategoryId(startCategory.nextCategoryId || '');
+                                                                setOpenDialog('link');
+                                                            }}
+                                                            startIcon={<LinkIcon />}
+                                                        >
+                                                            연결 변경
+                                                        </Button>
+                                                    </CardActions>
+                                                )}
                                             </Card>
                                         ))}
                                     </Box>
@@ -634,7 +800,7 @@ const CategoriesComponent: React.FC = () => {
                 <DialogTitle>카테고리 삭제</DialogTitle>
                 <DialogContent>
                     <Typography>
-                        '{categoryToDelete?.name}' 카테고리를 삭제하시겠습니까?
+                        &apos;{categoryToDelete?.name}&apos; 카테고리를 삭제하시겠습니까?
                     </Typography>
                     {categoryToDelete?.nextCategoryId && (
                         <Alert severity="warning" sx={{ mt: 2 }}>
@@ -659,7 +825,7 @@ const CategoriesComponent: React.FC = () => {
                 <DialogTitle>다음 작업 단계 연결</DialogTitle>
                 <DialogContent>
                     <Typography paragraph>
-                        '{linkCategory?.name}' 카테고리의 다음 단계를 선택하세요:
+                        &apos;{linkCategory?.name}&apos; 카테고리의 다음 단계를 선택하세요:
                     </Typography>
                     <FormControl fullWidth sx={{ mt: 2 }}>
                         <InputLabel>다음 단계</InputLabel>

@@ -36,7 +36,7 @@ interface HeaderProps {
     sidebarOpen: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ toggleSidebar, sidebarOpen }) => {
+const Header: React.FC<HeaderProps> = ({ toggleSidebar, }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const { user } = useAuth();

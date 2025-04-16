@@ -40,8 +40,12 @@ const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
                 await createUserWithEmailAndPassword(auth, email, password);
             }
             router.push('/');
-        } catch (err: any) {
-            setError(err.message || '인증 중 오류가 발생했습니다.');
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message || '인증 중 오류가 발생했습니다.');
+            } else {
+                setError('인증 중 오류가 발생했습니다: 알 수 없는 오류');
+            }
         }
     };
 

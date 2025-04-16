@@ -17,7 +17,7 @@ import {
     CircularProgress,
     IconButton,
     useTheme,
-    Grid as MuiGrid // 이름 변경
+
 } from '@mui/material';
 import {
     Person,
@@ -30,10 +30,7 @@ import {
 import { updateProfile } from 'firebase/auth';
 import Link from 'next/link';
 
-// MUI의 Grid 컴포넌트용 인터페이스
-const Grid = ({ children, ...props }: { children: React.ReactNode, props: any }) => {
-    return <MuiGrid {...props}>{children}</MuiGrid>;
-};
+
 
 export default function ProfilePage() {
     const { user, loading } = useAuth();
@@ -84,8 +81,12 @@ export default function ProfilePage() {
 
             setIsEditing(false);
             setSuccess('프로필이 성공적으로 업데이트되었습니다.');
-        } catch (err: any) {
-            setError('프로필 업데이트에 실패했습니다: ' + err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError('프로필 업데이트에 실패했습니다: ' + err.message);
+            } else {
+                setError('프로필 업데이트에 실패했습니다: 알 수 없는 오류');
+            }
         } finally {
             setIsSaving(false);
         }

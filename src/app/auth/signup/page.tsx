@@ -21,6 +21,7 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '../../../firebase/firebaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { FirebaseError } from 'firebase/app';
 
 export default function SignupPage() {
     const [email, setEmail] = useState('');
@@ -66,14 +67,16 @@ export default function SignupPage() {
             }
 
             router.push('/');
-        } catch (err: any) {
+        } catch (err: unknown) {
             let errorMessage = '회원가입에 실패했습니다.';
-            if (err.code === 'auth/email-already-in-use') {
-                errorMessage = '이미 사용 중인 이메일입니다.';
-            } else if (err.code === 'auth/invalid-email') {
-                errorMessage = '유효하지 않은 이메일 형식입니다.';
-            } else if (err.code === 'auth/weak-password') {
-                errorMessage = '비밀번호가 너무 약합니다.';
+            if (err instanceof FirebaseError) {
+                if (err.code === 'auth/email-already-in-use') {
+                    errorMessage = '이미 사용 중인 이메일입니다.';
+                } else if (err.code === 'auth/invalid-email') {
+                    errorMessage = '유효하지 않은 이메일 형식입니다.';
+                } else if (err.code === 'auth/weak-password') {
+                    errorMessage = '비밀번호가 너무 약합니다.';
+                }
             }
             setError(errorMessage);
         } finally {

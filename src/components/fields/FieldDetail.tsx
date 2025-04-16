@@ -1,7 +1,7 @@
 // src/components/fields/FieldDetail.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Box,
@@ -17,8 +17,7 @@ import {
     List,
     ListItem,
     ListItemText,
-    Card,
-    CardContent,
+
     Dialog,
     DialogTitle,
     DialogContent,
@@ -26,7 +25,7 @@ import {
     DialogActions,
     CircularProgress,
     Alert,
-    Tooltip,
+
     useTheme,
     Menu,
     MenuItem,
@@ -39,18 +38,13 @@ import {
     Edit as EditIcon,
     Delete as DeleteIcon,
     Terrain as TerrainIcon,
-    Category as CategoryIcon,
-    CalendarToday as CalendarIcon,
+
     Person as PersonIcon,
     Place as PlaceIcon,
     Note as NoteIcon,
-    MoreVert as MoreVertIcon,
-    EventNote as EventNoteIcon,
+
     Add as AddIcon,
     ArrowCircleUp as StageUpIcon,
-    Navigation as NavigationIcon,
-    ZoomIn as ZoomInIcon,
-    ZoomOut as ZoomOutIcon,
     Phone as PhoneIcon,
     Flag as FlagIcon,
 } from '@mui/icons-material';
@@ -87,207 +81,9 @@ const TabPanel = (props: TabPanelProps) => {
     );
 };
 
-// 지도 컴포넌트를 위한 타입
-interface MapProps {
-    address: string;
-    latitude?: number;
-    longitude?: number;
-    zoom?: number;
-}
-
-// 간단한 지도 컴포넌트
-const SimpleMap: React.FC<MapProps> = ({ address, latitude, longitude, zoom = 15 }) => {
-    const [mapLoaded, setMapLoaded] = useState(false);
-    const mapRef = React.useRef<HTMLDivElement>(null);
-    const [currentZoom, setCurrentZoom] = useState(zoom);
-    const theme = useTheme();
-
-    // 실제 프로젝트에서는 환경 변수 등으로 API 키를 관리해야 합니다
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY; // 실제 프로젝트에서는 환경 변수로 대체
-
-    useEffect(() => {
-        // 이미 로드되었는지 체크
-        if (window.google?.maps) {
-            setMapLoaded(true);
-            return;
-        }
-
-        // 이미 스크립트 태그가 있는지 확인
-        const existingScript = document.querySelector('script[src*="maps.googleapis.com/maps/api"]');
-        if (existingScript) {
-            // 이미 로드 중인 스크립트가 있으면 완료 이벤트 리스너만 추가
-            existingScript.addEventListener('load', () => {
-                setMapLoaded(true);
-            });
-            return;
-        }
-
-        // 새로운 스크립트 생성
-        const script = document.createElement('script');
-        script.id = 'google-maps-script';
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async`;
-        script.async = true;
-        script.defer = true;
-        script.onload = () => {
-            setMapLoaded(true);
-        };
-        document.head.appendChild(script);
-
-        return () => {
-            // 컴포넌트 언마운트 시 스크립트는 유지
-        };
-    }, [apiKey]);
-
-    useEffect(() => {
-        if (!mapLoaded || !mapRef.current) return;
-
-        const google = window.google;
-        let position;
-
-        if (latitude && longitude) {
-            position = { lat: latitude, lng: longitude };
-        } else {
-            // 임시 좌표 (기본값)
-            position = { lat: 37.4812845080678, lng: 126.952713197762 }; // 서울 좌표
-        }
-
-        const mapOptions = {
-            center: position,
-            zoom: currentZoom,
-            mapTypeId: google.maps.MapTypeId.SATELLITE,
-            mapTypeControl: false,
-            streetViewControl: false,
-            fullscreenControl: false,
-        };
-
-        const map = new google.maps.Map(mapRef.current, mapOptions);
-        const marker = new google.maps.Marker({
-            position: position,
-            map: map,
-            title: address,
-            animation: google.maps.Animation.DROP
-        });
-
-        // 정보창 생성
-        const infowindow = new google.maps.InfoWindow({
-            content: `<div style="padding: 8px; max-width: 200px;"><strong>${address}</strong></div>`
-        });
-
-        // 마커 클릭시 정보창 표시
-        marker.addListener('click', () => {
-            infowindow.open(map, marker);
-        });
-
-        // 처음부터 정보창 표시
-        infowindow.open(map, marker);
-
-        // 장소 검색 - 실제 위도/경도가 없을 경우 주소로 검색
-        if (!latitude || !longitude) {
-            const geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ address: address }, (results: any, status: any) => {
-                if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
-                    const location = results[0].geometry.location;
-                    map.setCenter(location);
-                    marker.setPosition(location);
-                }
-            });
-        }
-
-    }, [mapLoaded, address, latitude, longitude, currentZoom]);
 
 
 
-
-
-    // 줌 레벨 변경 함수
-    const handleZoomIn = () => {
-        setCurrentZoom(prev => Math.min(prev + 1, 20));
-    };
-
-    const handleZoomOut = () => {
-        setCurrentZoom(prev => Math.max(prev - 1, 1));
-    };
-
-    // 네이버 지도 앱으로 길찾기 열기 (모바일)
-    const openNaverMap = () => {
-        window.open(`nmap://navigation?dlat=${latitude || ''}&dlng=${longitude || ''}&dname=${encodeURIComponent(address)}`);
-    };
-
-    // 카카오맵으로 길찾기 열기
-    const openKakaoMap = () => {
-        window.open(`https://map.kakao.com/link/to/${encodeURIComponent(address)},${latitude || ''},${longitude || ''}`);
-    };
-
-    // 지도를 로드할 수 없을 때 대체 UI
-    const placeholderUI = (
-        <Box
-            sx={{
-                height: '100%',
-                width: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: theme.palette.grey[100],
-                borderRadius: 1,
-                p: 3
-            }}
-        >
-            <PlaceIcon sx={{ fontSize: 48, color: theme.palette.grey[400], mb: 2 }} />
-            <Typography variant="body1" color="text.secondary" align="center">
-                지도를 로드할 수 없습니다.
-            </Typography>
-            <Button
-                variant="outlined"
-                startIcon={<NavigationIcon />}
-                sx={{ mt: 2 }}
-                component="a"
-                href={`https://map.kakao.com/link/search/${encodeURIComponent(address)}`}
-                target="_blank"
-            >
-                카카오맵에서 보기
-            </Button>
-        </Box>
-    );
-
-    return (
-        <Box sx={{ position: 'relative', height: 350, width: '100%', borderRadius: 1, overflow: 'hidden' }}>
-            {mapLoaded ? (
-                <>
-                    <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
-                    <Box sx={{ position: 'absolute', bottom: 16, left: 16, zIndex: 10 }}>
-                        <Button
-                            variant="contained"
-                            size="small"
-                            startIcon={<NavigationIcon />}
-                            onClick={openKakaoMap}
-                            sx={{ mr: 1 }}
-                        >
-                            길찾기
-                        </Button>
-                    </Box>
-                    <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}>
-                        <IconButton
-                            size="small"
-                            onClick={handleZoomIn}
-                            sx={{ bgcolor: 'background.paper', mb: 1, boxShadow: 1, '&:hover': { bgcolor: 'background.paper' } }}
-                        >
-                            <ZoomInIcon />
-                        </IconButton>
-                        <br />
-                        <IconButton
-                            size="small"
-                            onClick={handleZoomOut}
-                            sx={{ bgcolor: 'background.paper', boxShadow: 1, '&:hover': { bgcolor: 'background.paper' } }}
-                        >
-                            <ZoomOutIcon />
-                        </IconButton>
-                    </Box>
-                </>
-            ) : placeholderUI}
-        </Box>
-    );
-};
 
 interface FieldDetailProps {
     field: Field;

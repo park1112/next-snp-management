@@ -3,7 +3,7 @@
 // src/components/utils/PaymentGroupInitializer.tsx
 import React, { useEffect, useState } from 'react';
 import { Button, Alert, Snackbar, Box, Typography, CircularProgress } from '@mui/material';
-import { collection, getDocs, query, where, addDoc, serverTimestamp, getFirestore } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp, getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 /**

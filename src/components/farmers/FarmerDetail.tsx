@@ -27,7 +27,6 @@ import {
     CircularProgress,
     Alert,
     Tooltip,
-    useTheme
 } from '@mui/material';
 import {
     ArrowBack as ArrowBackIcon,
@@ -36,14 +35,9 @@ import {
     Phone as PhoneIcon,
     Home as HomeIcon,
     Person as PersonIcon,
-    Place as PlaceIcon,
     AccountBalance as BankIcon,
     Add as AddIcon,
-    ChevronRight as ChevronRightIcon,
     Terrain as TerrainIcon,
-    FormatListBulleted as ListIcon,
-    Map as MapIcon,
-    Description as DescriptionIcon
 } from '@mui/icons-material';
 import { Farmer, Field, Contract } from '@/types';
 import { deleteFarmer } from '@/services/firebase/farmerService';
@@ -79,14 +73,14 @@ interface FarmerDetailProps {
 
 const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields: initialFields = [], contracts = [] }) => {
     const router = useRouter();
-    const theme = useTheme();
+
 
     // 탭 및 삭제 관련 상태
     const [tabValue, setTabValue] = useState(0);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
-    const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+    const [viewMode] = useState<'list' | 'map'>('list');
 
     // 농지 정보(Fields)를 props에서 받아오거나, 없는 경우 조회
     const [fields, setFields] = useState<Field[]>(initialFields);
@@ -139,10 +133,6 @@ const FarmerDetail: React.FC<FarmerDetailProps> = ({ farmer, fields: initialFiel
         }
     }, [farmer.id, initialFields]);
 
-    // 보기 모드 토글 (목록/지도)
-    const toggleViewMode = () => {
-        setViewMode(viewMode === 'list' ? 'map' : 'list');
-    };
 
     return (
         <Box>

@@ -35,9 +35,7 @@ import {
     Info as InfoIcon,
     AttachMoney as MoneyIcon,
 } from '@mui/icons-material';
-import { Contract } from '@/types';
 import { useContract } from '@/hooks/useContracts';
-import { useConfirm } from '@/hooks/useConfirm';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -67,7 +65,6 @@ interface ContractDetailProps {
 
 const ContractDetail: React.FC<ContractDetailProps> = ({ contractId }) => {
     const router = useRouter();
-    const { confirm } = useConfirm();
     const { contract, isLoading, error, deleteContract } = useContract(contractId);
 
     // Tab state

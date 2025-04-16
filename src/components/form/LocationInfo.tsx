@@ -1,9 +1,18 @@
 // src/components/form/LocationInfo.tsx
 import React from 'react';
-import { Grid, TextField, Typography, Divider, InputAdornment } from '@mui/material';
+import { Grid, Typography, Divider } from '@mui/material';
 import { LocationOn as LocationOnIcon } from '@mui/icons-material';
 import AddressInfo from './AddressInfo';
 import { Schedule } from '@/types';
+
+// Define the AddressUpdate interface
+interface AddressUpdate {
+    address?: string;
+    roadAddress?: string;
+    jibunAddress?: string;
+    zonecode?: string;
+    detail?: string;
+}
 
 interface LocationInfoProps {
     formData: Partial<Schedule>;
@@ -25,7 +34,7 @@ const LocationInfo: React.FC<LocationInfoProps> = ({
     error
 }) => {
     // 주소 정보 업데이트 핸들러
-    const handleAddressUpdate = (addressData: any) => {
+    const handleAddressUpdate = (addressData: AddressUpdate) => {
         onAddressUpdate(addressData, type);
     };
 
@@ -65,10 +74,14 @@ const LocationInfo: React.FC<LocationInfoProps> = ({
                     }
                 }}
                 onChange={onChange}
-                onAddressUpdate={(addressData) => handleAddressUpdate({
-                    ...addressData,
-                    detail: detailValue
-                })}
+                onAddressUpdate={(addressData) => {
+                    // Create a new object with the address data and detail
+                    const updatedData = {
+                        ...(addressData as unknown as AddressUpdate),
+                        detail: detailValue
+                    };
+                    handleAddressUpdate(updatedData);
+                }}
             />
 
             {error && (

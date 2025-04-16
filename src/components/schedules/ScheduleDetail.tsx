@@ -606,7 +606,7 @@ const ScheduleDetail: React.FC<ScheduleDetailProps> = ({ scheduleId }) => {
                 <DialogTitle>작업 상태 변경</DialogTitle>
                 <DialogContent>
                     <Typography>
-                        작업 상태를 '{selectedStage}'(으)로 변경하시겠습니까?
+                        작업 상태를 &apos;{selectedStage}&apos;(으)로 변경하시겠습니까?
                     </Typography>
                 </DialogContent>
                 <DialogActions>

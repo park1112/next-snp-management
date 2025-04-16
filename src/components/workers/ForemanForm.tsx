@@ -26,15 +26,10 @@ import {
     Alert,
     Snackbar,
     CircularProgress,
-    RadioGroup,
-    Radio,
-    FormControlLabel,
     InputAdornment,
-    Switch,
+
     Checkbox,
-    useTheme,
     SelectChangeEvent,
-    Autocomplete,
     Chip
 } from '@mui/material';
 import {
@@ -50,11 +45,11 @@ import {
 
     Money as MoneyIcon,
     Check as CheckIcon,
-    Delete as DeleteIcon,
+
 } from '@mui/icons-material';
 import { Foreman, DropdownOption } from '@/types';
-import { createForeman, updateWorker, getForemanCategories } from '@/services/firebase/workerService';
-import { useForemen } from '@/hooks/useWorkers';
+import { createForeman, updateWorker } from '@/services/firebase/workerService';
+
 import AddressInfo from '../form/AddressInfo';
 
 

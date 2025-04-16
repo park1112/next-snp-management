@@ -362,6 +362,7 @@ export interface Schedule {
     farmerName?: string;  // UI 표시용 농가 이름
     fieldName?: string;   // UI 표시용 농지 이름
     fieldAddress?: string; // UI 표시용 농지 주소
+    fieldFullAddress?: string; // UI 표시용 농지 주소
     workerName?: string;  // UI 표시용 작업자 이름
     stage: {
         current: string;    // 진행 상태 (준비, 진행중, 완료 등)
@@ -565,6 +566,7 @@ export interface ScheduleFormState {
     stage: WorkStage;
     farmerId: string;
     fieldId: string;
+    fieldFullAddress: string;
     workerId: string;
     scheduledDate: {
         start: Date;

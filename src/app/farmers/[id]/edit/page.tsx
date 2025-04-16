@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { Box, CircularProgress, Alert } from '@mui/material';
 import MainLayout from '@/components/layout/MainLayout';
 import FarmerForm from '@/components/farmers/FarmerForm';
@@ -10,7 +10,6 @@ import { Farmer } from '@/types';
 
 export default function EditFarmerPage() {
     const params = useParams();
-    const router = useRouter();
     const farmerId = params.id as string;
 
     // States

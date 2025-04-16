@@ -23,60 +23,91 @@ import { getFirestore } from 'firebase/firestore';
 const db = getFirestore();
 const schedulesCollection = collection(db, 'schedules');
 
-interface CategorySchedule {
-    scheduledDate: {
-        start: Date | null;
-    };
-    [key: string]: any;
-}
 
 // Timestamp를 Date로 변환하는 유틸리티 함수
-const convertTimestampToDate = (data: any): any => {
-    const result = { ...data };
 
-    // 기본 날짜 필드
+
+const convertTimestampToDate = (
+    data: Record<string, unknown>
+): Record<string, unknown> => {
+    const result: Record<string, unknown> = { ...data };
+
     if (result.createdAt && result.createdAt instanceof Timestamp) {
-        result.createdAt = result.createdAt.toDate();
+        result.createdAt = (result.createdAt as Timestamp).toDate();
     }
     if (result.updatedAt && result.updatedAt instanceof Timestamp) {
-        result.updatedAt = result.updatedAt.toDate();
+        result.updatedAt = (result.updatedAt as Timestamp).toDate();
+    }
+    if (result.contractDate && result.contractDate instanceof Timestamp) {
+        result.contractDate = (result.contractDate as Timestamp).toDate();
     }
 
-    // 예정 날짜
-    if (result.scheduledDate) {
-        if (result.scheduledDate.start && result.scheduledDate.start instanceof Timestamp) {
-            result.scheduledDate.start = result.scheduledDate.start.toDate();
+    // 예시: downPayment 처리 (필요한 부분만 표시)
+    if (result.downPayment && typeof result.downPayment === 'object') {
+        const dp = result.downPayment as Record<string, unknown>;
+        if (dp.dueDate && dp.dueDate instanceof Timestamp) {
+            dp.dueDate = (dp.dueDate as Timestamp).toDate();
         }
-        if (result.scheduledDate.end && result.scheduledDate.end instanceof Timestamp) {
-            result.scheduledDate.end = result.scheduledDate.end.toDate();
-        }
-    }
-
-    // 실제 작업 날짜
-    if (result.actualDate) {
-        if (result.actualDate.start && result.actualDate.start instanceof Timestamp) {
-            result.actualDate.start = result.actualDate.start.toDate();
-        }
-        if (result.actualDate.end && result.actualDate.end instanceof Timestamp) {
-            result.actualDate.end = result.actualDate.end.toDate();
+        if (dp.paidDate && dp.paidDate instanceof Timestamp) {
+            dp.paidDate = (dp.paidDate as Timestamp).toDate();
         }
     }
 
-    // 상태 변경 이력 날짜
-    if (result.stage && result.stage.history && Array.isArray(result.stage.history)) {
-        result.stage.history = result.stage.history.map((item: any) => {
-            if (item.timestamp && item.timestamp instanceof Timestamp) {
-                item.timestamp = item.timestamp.toDate();
+    if (result.intermediatePayments && Array.isArray(result.intermediatePayments)) {
+        result.intermediatePayments = (result.intermediatePayments as Record<string, unknown>[]).map(
+            (payment: Record<string, unknown>) => {
+                if (payment.dueDate && payment.dueDate instanceof Timestamp) {
+                    payment.dueDate = (payment.dueDate as Timestamp).toDate();
+                }
+                if (payment.paidDate && payment.paidDate instanceof Timestamp) {
+                    payment.paidDate = (payment.paidDate as Timestamp).toDate();
+                }
+                return payment;
             }
-            return item;
-        });
+        );
+    }
+
+    if (result.finalPayment && typeof result.finalPayment === 'object') {
+        const fp = result.finalPayment as Record<string, unknown>;
+        if (fp.dueDate && fp.dueDate instanceof Timestamp) {
+            fp.dueDate = (fp.dueDate as Timestamp).toDate();
+        }
+        if (fp.paidDate && fp.paidDate instanceof Timestamp) {
+            fp.paidDate = (fp.paidDate as Timestamp).toDate();
+        }
+    }
+
+    if (
+        result.contractDetails &&
+        typeof result.contractDetails === 'object' &&
+        (result.contractDetails as Record<string, unknown>).harvestPeriod
+    ) {
+        const harvestPeriod = (result.contractDetails as Record<string, unknown>).harvestPeriod as Record<string, unknown>;
+        if (harvestPeriod.start && harvestPeriod.start instanceof Timestamp) {
+            harvestPeriod.start = (harvestPeriod.start as Timestamp).toDate();
+        }
+        if (harvestPeriod.end && harvestPeriod.end instanceof Timestamp) {
+            harvestPeriod.end = (harvestPeriod.end as Timestamp).toDate();
+        }
+    }
+
+    if (result.attachments && Array.isArray(result.attachments)) {
+        result.attachments = (result.attachments as Record<string, unknown>[]).map(
+            (attachment: Record<string, unknown>) => {
+                if (attachment.uploadedAt && attachment.uploadedAt instanceof Timestamp) {
+                    attachment.uploadedAt = (attachment.uploadedAt as Timestamp).toDate();
+                }
+                return attachment;
+            }
+        );
     }
 
     return result;
 };
 
+
 // Date를 Firestore에 저장 가능한 형태로 변환
-const prepareDataForFirestore = (data: any): any => {
+const prepareDataForFirestore = (data: Record<string, unknown>): Record<string, unknown> => {
     const result = { ...data };
 
     // id 필드는 저장하지 않음
@@ -397,7 +428,7 @@ export const createSchedule = async (scheduleData: Omit<Schedule, 'id' | 'create
         }
 
         // 날짜 필드 직접 처리 - 별도 변수에 저장하지 않고 바로 객체에 병합
-        const newSchedule = {
+        const newSchedule: Record<string, unknown> = {
             ...processedData,
             stage: {
                 current: scheduleData.stage?.current || '예정',

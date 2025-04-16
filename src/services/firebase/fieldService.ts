@@ -3,19 +3,18 @@ import {
     collection,
     doc,
     addDoc,
-    setDoc,
+
     getDoc,
     getDocs,
     query,
     where,
     orderBy,
-    limit,
+
     updateDoc,
     deleteDoc,
     serverTimestamp,
     Timestamp,
-    startAt,
-    endAt,
+
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
@@ -27,27 +26,84 @@ const db = getFirestore();
 const fieldsCollection = collection(db, 'fields');
 
 // Timestamp to Date 변환 함수
-const convertTimestampToDate = (data: any): any => {
-    if (!data) return data;
+const convertTimestampToDate = (
+    data: Record<string, unknown>
+): Record<string, unknown> => {
+    const result: Record<string, unknown> = { ...data };
 
-    if (data instanceof Timestamp) {
-        return data.toDate();
+    if (result.createdAt && result.createdAt instanceof Timestamp) {
+        result.createdAt = (result.createdAt as Timestamp).toDate();
+    }
+    if (result.updatedAt && result.updatedAt instanceof Timestamp) {
+        result.updatedAt = (result.updatedAt as Timestamp).toDate();
+    }
+    if (result.contractDate && result.contractDate instanceof Timestamp) {
+        result.contractDate = (result.contractDate as Timestamp).toDate();
     }
 
-    if (Array.isArray(data)) {
-        return data.map(item => convertTimestampToDate(item));
-    }
-
-    if (typeof data === 'object') {
-        const result: { [key: string]: any } = {};
-        for (const key in data) {
-            result[key] = convertTimestampToDate(data[key]);
+    // 예시: downPayment 처리 (필요한 부분만 표시)
+    if (result.downPayment && typeof result.downPayment === 'object') {
+        const dp = result.downPayment as Record<string, unknown>;
+        if (dp.dueDate && dp.dueDate instanceof Timestamp) {
+            dp.dueDate = (dp.dueDate as Timestamp).toDate();
         }
-        return result;
+        if (dp.paidDate && dp.paidDate instanceof Timestamp) {
+            dp.paidDate = (dp.paidDate as Timestamp).toDate();
+        }
     }
 
-    return data;
+    if (result.intermediatePayments && Array.isArray(result.intermediatePayments)) {
+        result.intermediatePayments = (result.intermediatePayments as Record<string, unknown>[]).map(
+            (payment: Record<string, unknown>) => {
+                if (payment.dueDate && payment.dueDate instanceof Timestamp) {
+                    payment.dueDate = (payment.dueDate as Timestamp).toDate();
+                }
+                if (payment.paidDate && payment.paidDate instanceof Timestamp) {
+                    payment.paidDate = (payment.paidDate as Timestamp).toDate();
+                }
+                return payment;
+            }
+        );
+    }
+
+    if (result.finalPayment && typeof result.finalPayment === 'object') {
+        const fp = result.finalPayment as Record<string, unknown>;
+        if (fp.dueDate && fp.dueDate instanceof Timestamp) {
+            fp.dueDate = (fp.dueDate as Timestamp).toDate();
+        }
+        if (fp.paidDate && fp.paidDate instanceof Timestamp) {
+            fp.paidDate = (fp.paidDate as Timestamp).toDate();
+        }
+    }
+
+    if (
+        result.contractDetails &&
+        typeof result.contractDetails === 'object' &&
+        (result.contractDetails as Record<string, unknown>).harvestPeriod
+    ) {
+        const harvestPeriod = (result.contractDetails as Record<string, unknown>).harvestPeriod as Record<string, unknown>;
+        if (harvestPeriod.start && harvestPeriod.start instanceof Timestamp) {
+            harvestPeriod.start = (harvestPeriod.start as Timestamp).toDate();
+        }
+        if (harvestPeriod.end && harvestPeriod.end instanceof Timestamp) {
+            harvestPeriod.end = (harvestPeriod.end as Timestamp).toDate();
+        }
+    }
+
+    if (result.attachments && Array.isArray(result.attachments)) {
+        result.attachments = (result.attachments as Record<string, unknown>[]).map(
+            (attachment: Record<string, unknown>) => {
+                if (attachment.uploadedAt && attachment.uploadedAt instanceof Timestamp) {
+                    attachment.uploadedAt = (attachment.uploadedAt as Timestamp).toDate();
+                }
+                return attachment;
+            }
+        );
+    }
+
+    return result;
 };
+
 
 // 모든 농지 조회
 // src/services/firebase/fieldService.ts의 getFields 함수 내부에서 테스트용 좌표 추가
@@ -421,11 +477,6 @@ export const updateFieldStage = async (
         const currentStage = fieldData.currentStage || {};
         const stageHistory = currentStage.history || [];
 
-        // 새 단계 정보
-        const newStage = {
-            stage: stage,
-            updatedAt: new Date(),
-        };
 
         // 이력에 추가할 항목
         const historyEntry = {
