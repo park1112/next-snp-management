@@ -1,6 +1,6 @@
 // src/firebase/firebaseClient.ts
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
 
 const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -11,8 +11,12 @@ const firebaseConfig = {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
-if (!getApps().length) {
-    initializeApp(firebaseConfig);
-}
+// 이미 초기화된 앱이 있으면 재사용, 없으면 새로 초기화
+const app = !getApps().length
+    ? initializeApp(firebaseConfig)
+    : getApp();
 
-export const auth = getAuth();
+// 클라이언트 환경에서만 Auth 인스턴스 생성
+export const auth: Auth | null = typeof window !== 'undefined'
+    ? getAuth(app)
+    : null;
