@@ -168,6 +168,7 @@ const FarmerForm: React.FC<FarmerFormProps> = ({ initialData, isEdit = false }) 
         }
 
         // 저장 전, 주소 검색에서 추출한 면 단위는 address.subdistrict에 저장된 값으로 덮어씁니다.
+
         const updatedData: Partial<Farmer> = {
             ...formData,
             address: {
@@ -176,6 +177,11 @@ const FarmerForm: React.FC<FarmerFormProps> = ({ initialData, isEdit = false }) 
                 subdistrict: formData.address?.subdistrict || '',
             },
         };
+
+        // coordinates가 undefined인 경우 필드 자체를 제거
+        if (updatedData.address && updatedData.address.coordinates === undefined) {
+            delete updatedData.address.coordinates;
+        }
 
         setLoading(true);
         try {
@@ -214,18 +220,24 @@ const FarmerForm: React.FC<FarmerFormProps> = ({ initialData, isEdit = false }) 
         coordinates?: { latitude: number; longitude: number };
         subdistrict: string;
     }) => {
+        // 기본 주소 객체 생성
+        const updatedAddress = {
+            ...formData.address,
+            full: address.full,
+            zipcode: address.zipcode,
+            subdistrict: address.subdistrict,
+        };
+
+        // coordinates가 있을 때만 추가 (undefined일 경우 필드 자체를 제외)
+        if (address.coordinates) {
+            updatedAddress.coordinates = address.coordinates;
+        }
+
         setFormData({
             ...formData,
-            address: {
-                ...formData.address,
-                full: address.full,
-                zipcode: address.zipcode,
-                coordinates: address.coordinates,
-                subdistrict: address.subdistrict,
-            },
+            address: updatedAddress,
         });
     };
-
 
 
     return (

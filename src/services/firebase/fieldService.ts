@@ -115,12 +115,17 @@ export const getFields = async (): Promise<Field[]> => {
 
         const fields = await Promise.all(querySnapshot.docs.map(async doc => {
             const data = doc.data();
-
             let farmerName = '';
+            let phoneNumber = '';
+            let paymentGroup = '';
+            let subdistrict = '';
             if (data.farmerId) {
                 const farmer = await getFarmerById(data.farmerId);
                 if (farmer) {
                     farmerName = farmer.name;
+                    phoneNumber = farmer.phoneNumber;
+                    paymentGroup = farmer.paymentGroup;
+                    subdistrict = farmer.address?.subdistrict || '';
                 }
             }
 
@@ -150,6 +155,9 @@ export const getFields = async (): Promise<Field[]> => {
                 id: doc.id,
                 ...convertTimestampToDate(data),
                 farmerName,
+                phoneNumber,
+                paymentGroup,
+                subdistrict,
             } as Field;
         }));
 
@@ -172,6 +180,9 @@ export const getFieldsByFarmerId = async (farmerId: string): Promise<Field[]> =>
 
         const farmer = await getFarmerById(farmerId);
         const farmerName = farmer?.name || '';
+        const phoneNumber = farmer?.phoneNumber || '';
+        const paymentGroup = farmer?.paymentGroup || '';
+        const subdistrict = farmer?.address?.subdistrict || '';
 
         const fields = querySnapshot.docs.map(doc => {
             const data = doc.data();
@@ -179,6 +190,9 @@ export const getFieldsByFarmerId = async (farmerId: string): Promise<Field[]> =>
                 id: doc.id,
                 ...convertTimestampToDate(data),
                 farmerName,
+                phoneNumber,
+                paymentGroup,
+                subdistrict,
             } as Field;
         });
 

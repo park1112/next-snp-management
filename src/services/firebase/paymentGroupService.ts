@@ -13,18 +13,12 @@ import {
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { PaymentGroup } from '@/types/payment';
 
 // Firestore 인스턴스
 const db = getFirestore();
 const paymentGroupsCollection = collection(db, 'paymentGroups');
 
-// 결제소속 인터페이스
-export interface PaymentGroup {
-    id: string;
-    name: string;
-    createdBy: string;
-    createdAt: Date;
-}
 
 // 모든 결제소속 조회
 export const getPaymentGroups = async (): Promise<PaymentGroup[]> => {

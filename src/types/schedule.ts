@@ -1,0 +1,114 @@
+// src/types/schedule.ts
+// 작업 유형 및 상태 타입
+export type WorkType = 'pulling' | 'cutting' | 'packing' | 'transport' | 'netting';
+export type WorkStage = '예정' | '준비중' | '진행중' | '완료' | '취소';
+
+// 작업 일정 타입
+export interface Schedule {
+  id: string;
+  type: WorkType;
+  fieldId: string;
+  farmerId: string;
+  workerId: string;
+  farmerName?: string;
+  fieldName?: string;
+  fieldAddress?: string;
+  fieldFullAddress?: string;
+  workerName?: string;
+  stage: {
+    current: string;
+    history: {
+      stage: string;
+      timestamp: Date;
+      by: string;
+    }[];
+  };
+  scheduledDate: {
+    start: Date;
+    end?: Date;
+  };
+  actualDate?: {
+    start: Date;
+    end?: Date;
+  };
+  rateInfo: {
+    baseRate: number;
+    negotiatedRate?: number;
+    quantity?: number;
+    unit: string;
+  };
+  categorySchedules?: {
+    categoryId: string;
+    categoryName: string;
+    stage: WorkStage;
+    workerId: string;
+    workerName?: string;
+    scheduledDate: {
+      start: Date;
+    };
+  }[];
+  transportInfo?: {
+    origin: {
+      address: string;
+      detail?: string;
+      coordinates?: {
+        latitude: number;
+        longitude: number;
+      };
+    };
+    destination: {
+      address: string;
+      detail?: string;
+      coordinates?: {
+        latitude: number;
+        longitude: number;
+      };
+      contactName?: string;
+      contactPhone?: string;
+    };
+    cargo: {
+      type: string;
+      quantity: number;
+      unit: string;
+    };
+    distance?: number;
+    distanceRate?: number;
+    additionalFee?: number;
+  };
+  additionalInfo?: {
+    cropType?: string;
+    expectedQuantity?: number;
+    cuttingMethod?: string;
+    specialRequirements?: string;
+    packagingType?: string;
+    expectedPackages?: number;
+    flagNumber?: string;
+    locationId?: string;
+  };
+  paymentStatus: 'pending' | 'requested' | 'onhold' | 'completed';
+  paymentId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  memo?: string;
+}
+
+// 작업 폼 상태 타입
+export interface ScheduleFormState {
+  workType: WorkType;
+  stage: WorkStage;
+  farmerId: string;
+  fieldId: string;
+  fieldFullAddress: string;
+  workerId: string;
+  scheduledDate: {
+    start: Date;
+    end: Date;
+  };
+  rateInfo: {
+    baseRate: number;
+    unit: string;
+    quantity?: number;
+    negotiatedRate?: number;
+  };
+  memo: string;
+}

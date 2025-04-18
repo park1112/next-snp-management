@@ -5,6 +5,7 @@ import { z } from 'zod';
 // 주소 스키마
 export const AddressSchema = z.object({
     full: z.string().min(1, { message: '주소는 필수 항목입니다.' }),
+    subdistrict: z.string().optional(),
     zipcode: z.string().optional(),
     detail: z.string().optional(),
     coordinates: z.object({
@@ -33,12 +34,11 @@ export const FarmerSchema = z.object({
     phoneNumber: z.string().regex(/^\d{3}-\d{3,4}-\d{4}$/, {
         message: '유효한 전화번호 형식이 아닙니다. (예: 010-1234-5678)'
     }),
-    subdistrict: z.string().min(1, { message: '면단위는 필수 항목입니다.' }),
     paymentGroup: z.string().min(1, { message: '결제소속은 필수 항목입니다.' }),
     personalId: z.string().regex(/^\d{6}-\d{7}$/, {
         message: '유효한 주민등록번호 형식이 아닙니다. (예: 123456-1234567)'
     }).optional(),
-    address: AddressSchema.optional(),
+    address: AddressSchema,
     bankInfo: BankInfoSchema.optional(),
     fields: z.array(z.string()).optional(),
     contracts: z.array(z.string()).optional(),
