@@ -407,18 +407,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                             </ListItemIcon>
                             <ListItemText primary="일정 목록" />
                         </ListItemButton>
-                        <ListItemButton
-                            sx={{ pl: 4, borderRadius: 1, mb: 0.5 }}
-                            component={Link}
-                            href="/schedules/calendar"
-                            selected={pathname === '/schedules/calendar'}
-                            onClick={handleLinkClick}
-                        >
-                            <ListItemIcon>
-                                <CalendarMonth fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText primary="일정 캘린더" />
-                        </ListItemButton>
+
                         <ListItemButton
                             sx={{ pl: 4, borderRadius: 1, mb: 0.5 }}
                             component={Link}

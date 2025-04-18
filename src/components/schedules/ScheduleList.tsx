@@ -55,15 +55,14 @@ import {
     ArrowForwardIos as NextIcon,
     Money as MoneyIcon
 } from '@mui/icons-material';
-import { Foreman, Schedule, Category } from '@/types';
+import { Foreman, Schedule, Category, WorkStage } from '@/types';
 import { useSchedules } from '@/hooks/useSchedules';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
 import { getWorkers } from '@/services/firebase/workerService';
 import { updateSchedule } from '@/services/firebase/scheduleService';
 import { Worker as AppWorker, Driver } from '@/types';
-import { getForemanCategories } from '@/services/firebase/workerService';
 import { getCategories, getCategoryById } from '@/services/firebase/categoryService';
+
 
 interface ScheduleListProps {
     farmerId?: string;
@@ -83,7 +82,7 @@ interface CategorySchedule {
     scheduledDate: {
         start: Date;
     };
-    amount?: number; // 작업비 추가
+    amount?: number;
     memo?: string;   // 작업 메모 추가
 }
 
@@ -138,6 +137,12 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
     const [workAmountDialog, setWorkAmountDialog] = useState(false);
     const [workAmount, setWorkAmount] = useState<number>(0);
     const [workMemo, setWorkMemo] = useState<string>('');
+
+    // 추가할 상태
+    const [selectedWorkerForAmount, setSelectedWorkerForAmount] = useState<string>('');
+
+
+
 
     // 알림 메시지 상태
     const [alertOpen, setAlertOpen] = useState(false);
@@ -331,17 +336,20 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
     };
 
     // 다음 단계를 반환하는 함수
-    const getNextStage = (currentStage: ScheduleStage): ScheduleStage => {
-        switch (currentStage) {
+    const getNextStage = (stage: WorkStage): WorkStage => {
+        switch (stage) {
             case '예정': return '준비중';
             case '준비중': return '진행중';
             case '진행중': return '완료';
-            default: return currentStage;
+            default: return stage; // '완료' or '취소' remain same
         }
     };
 
+
+
+
     // 다음 단계로 이동하는 핸들러
-    const handleMoveToNextStage = (schedule: Schedule, categoryId: string) => {
+    const handleMoveToNextStage = async (schedule: Schedule, categoryId: string) => {
         // 현재 단계 찾기
         let currentStage: ScheduleStage = '예정';
 
@@ -383,10 +391,16 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
 
         // 진행중 -> 완료로 가는 경우 작업비 입력
         if (currentStage === '진행중' && nextStage === '완료') {
+            // 1) 해당 카테고리에 해당하는 작업자들 미리 로드
+            const workers = await fetchAvailableWorkers(categoryId);
+            setAvailableWorkers(workers);
+            // 2) 다이얼로그 초기화
+            setSelectedWorkerForAmount('');      // 선택 초기화
             setSelectedScheduleForStage(schedule);
             setSelectedCategoryId(categoryId);
             setWorkAmount(0);
             setWorkMemo('');
+            // 3) 다이얼로그 오픈
             setWorkAmountDialog(true);
             return;
         }
@@ -458,7 +472,9 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
                             ...cs,
                             stage: '완료' as ScheduleStage,
                             amount: workAmount,
-                            memo: workMemo
+                            memo: workMemo,
+                            workerId: selectedWorkerForAmount,
+                            workerName: availableWorkers.find(w => w.id === selectedWorkerForAmount)?.name || '',
                         }
                         : cs
                 );
@@ -570,7 +586,6 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
         setCategoryStageDialog(true);
     };
 
-    // 작업자 가져오기 함수
     // 작업자 가져오기 함수
     const fetchAvailableWorkers = async (categoryId: string) => {
         try {
@@ -1360,6 +1375,22 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
                         {getCategoryNameFromSchedule(selectedScheduleForStage, selectedCategoryId)} 작업의 작업비를 입력하세요.
                     </Typography>
 
+                    {/* 1) 작업자 선택 */}
+                    <FormControl fullWidth sx={{ mt: 2 }}>
+                        <InputLabel>작업자</InputLabel>
+                        <Select
+                            value={selectedWorkerForAmount}
+                            label="작업자"
+                            onChange={(e) => setSelectedWorkerForAmount(e.target.value as string)}
+                        >
+                            {availableWorkers.map((w) => (
+                                <MenuItem key={w.id} value={w.id}>
+                                    {w.name}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+
                     <TextField
                         fullWidth
                         label="작업비"
@@ -1389,6 +1420,22 @@ const ScheduleList: React.FC<ScheduleListProps> = ({
                         color="success"
                     >
                         완료하기
+                    </Button>
+                    {/* 정산 없이 바로 완료 */}
+                    <Button
+                        variant="contained"
+                        onClick={() => {
+                            // settlement 없이 그냥 완료로 상태 변경
+                            handleCategoryStageUpdate(
+                                selectedScheduleForStage!,
+                                selectedCategoryId,
+                                '완료'
+                            );
+                            setWorkAmountDialog(false);
+                        }}
+                        color="warning"
+                    >
+                        skip
                     </Button>
                 </DialogActions>
             </Dialog>

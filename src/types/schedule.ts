@@ -36,8 +36,13 @@ export interface Schedule {
     negotiatedRate?: number;
     quantity?: number;
     unit: string;
+    /** 추가 정산 금액 */
+    additionalAmount?: number;
+    /** 총 정산 금액 (기본 금액 + 추가 금액) */
+    totalAmount?: number;
   };
   categorySchedules?: {
+    amount?: number;
     categoryId: string;
     categoryName: string;
     stage: WorkStage;
@@ -85,6 +90,17 @@ export interface Schedule {
     flagNumber?: string;
     locationId?: string;
   };
+  /** 추가 정산 내역 */
+  additionalSettlements?: {
+    /** 추가 정산 금액 */
+    amount: number;
+    /** 정산 사유 */
+    reason: string;
+    /** 정산 일시 */
+    date: Date;
+    /** 정산 대상 작업 */
+    categoryId: string;
+  }[];
   paymentStatus: 'pending' | 'requested' | 'onhold' | 'completed';
   paymentId?: string;
   createdAt: Date;
