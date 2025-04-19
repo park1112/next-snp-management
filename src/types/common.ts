@@ -87,3 +87,6 @@ export type WorkType = 'pulling' | 'cutting' | 'packing' | 'transport' | 'nettin
 export type WorkStage = '예정' | '준비중' | '진행중' | '완료' | '취소';
 export type ContractStatus = 'pending' | 'active' | 'completed' | 'cancelled';
 export type PaymentStatus = 'pending' | 'requested' | 'onhold' | 'completed';
+
+
+

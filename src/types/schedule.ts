@@ -1,7 +1,9 @@
 // src/types/schedule.ts
-// 작업 유형 및 상태 타입
-export type WorkType = 'pulling' | 'cutting' | 'packing' | 'transport' | 'netting';
-export type WorkStage = '예정' | '준비중' | '진행중' | '완료' | '취소';
+
+import { WorkStage, WorkType } from "./common";
+
+
+
 
 // 작업 일정 타입
 export interface Schedule {
